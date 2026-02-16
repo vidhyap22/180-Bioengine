@@ -23,7 +23,13 @@ const AddPatientScreen = ({ navigation }) => {
   const [country, setCountry] = useState('');
 
   const validateDate = (text, type) => {
-    const num = parseInt(text);
+    if (text == ''){ //this should allow to delete the whole entry //new 
+      if (type === 'year') setYear('');
+      if (type === 'month') setMonth('');
+      if (type === 'day') setDay('');
+      return;
+    }
+    const num = parseInt(text, 10);
     switch (type) {
       case 'year':
         if (num > 0 && num <= new Date().getFullYear()) {
