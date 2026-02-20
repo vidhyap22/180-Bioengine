@@ -28,15 +28,18 @@ const TestDetailScreen = ({ route, navigation }) => {
   const [parsedData, setParsedData] = useState(null);
 
   useEffect(() => {
-    // Parse nasalance_data JSON if available
+    // Parse nasalance_data: Supabase jsonb can be object or string
     if (test.nasalance_data) {
       try {
-        setParsedData(JSON.parse(test.nasalance_data));
+        const data = typeof test.nasalance_data === 'string'
+          ? JSON.parse(test.nasalance_data)
+          : test.nasalance_data;
+        setParsedData(data);
       } catch (error) {
-        console.error("(TestDetailScreen - useEffect)Failed to parse nasalance_data:", error);
+        console.error("(TestDetailScreen - useEffect) Failed to parse nasalance_data:", error);
       }
     }
-    
+
     return () => {
       // Clean up audio resources when unmounting
       if (nasalSound) nasalSound.unloadAsync();

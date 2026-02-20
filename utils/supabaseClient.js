@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { createClient } from '@supabase/supabase-js';
-import { REACT_APP_SB_API_KEY } from '@env';
 
-const supabaseUrl = 'https://gmovqnfwwzkrvhovrdss.supabase.co';
-const supabaseKey = REACT_APP_SB_API_KEY;
+// From app.config.js extra (loaded from .env) or process.env
+const extra = Constants.expoConfig?.extra ?? {};
+const supabaseUrl = extra.EXPO_PUBLIC_SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://gmovqnfwwzkrvhovrdss.supabase.co';
+const supabaseKey = extra.EXPO_PUBLIC_SUPABASE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_KEY;
 
 if (!supabaseKey) {
   console.error('Missing Supabase API key');
