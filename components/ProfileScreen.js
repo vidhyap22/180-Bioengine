@@ -75,7 +75,12 @@ const ProfileScreen = ({ navigation }) => {
       label: 'Account',
       icon: 'person',
       items: [
-        { icon: 'person-outline', text: 'Edit Profile', chevron: true },
+        { 
+          icon: 'person-outline',
+          text: 'Edit Profile',
+          chevron: true,
+          onPress: () => navigation.navigate('EditProfile', { clinician: userData })
+         },
         { icon: 'lock-closed-outline', text: 'Change Password', chevron: true },
         // { icon: 'notifications-outline', text: 'Notifications', chevron: true }
       ]
