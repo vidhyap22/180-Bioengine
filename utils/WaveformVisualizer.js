@@ -1,7 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
+import Colors from '../constants/Colors';
 
-const WaveformVisualizer = ({ amplitude = 0, height = 40, width = '100%', color = '#2196f3', bars = 20 }) => {
+const WaveformVisualizer = ({
+  amplitudes = [],
+  height = 40,
+  width = '100%',
+  color = '#2196f3',
+  bars = 20,
+  currentBarIndex = -1
+}) => {
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -10,45 +18,26 @@ const WaveformVisualizer = ({ amplitude = 0, height = 40, width = '100%', color 
       isMounted.current = false;
     };
   }, []);
-  
-  // Generate an array of bar heights based on the amplitude
-  const generateBars = () => {
-    if (!isMounted.current) return [];
-    
-    const barWidths = [];
-    
-    for (let i = 0; i < bars; i++) {
-      // Create a wave-like pattern
-      const position = i / bars;
-      const sinValue = Math.sin(position * Math.PI * 2 + Date.now() / 200);
-      
-      // Apply amplitude to the sine wave and ensure it's positive
-      const barHeight = Math.max(0.1, Math.abs(sinValue) * amplitude);
-      
-      barWidths.push(barHeight);
-    }
-    
-    return barWidths;
-  };
 
   return (
     <View style={[styles.container, { height, width }]}>
-      {amplitude > 0 ? (
-        generateBars().map((barHeight, index) => (
+      {amplitudes.map((value, index) => {
+        const isActive = index === currentBarIndex;
+
+        return (
           <View
             key={index}
             style={[
               styles.bar,
               {
-                height: `${barHeight * 100}%`,
-                backgroundColor: color,
+                height: `${Math.max(0.05, value) * 100}%`,
+                backgroundColor: isActive ? color : "#cbd5e1",
+                opacity: isActive ? 1 : 0.5,
               },
             ]}
           />
-        ))
-      ) : (
-        <View style={styles.flatLine} />
-      )}
+        );
+      })}
     </View>
   );
 };
@@ -62,11 +51,6 @@ const styles = StyleSheet.create({
   bar: {
     width: 3,
     borderRadius: 2,
-  },
-  flatLine: {
-    height: 1,
-    width: '100%',
-    backgroundColor: '#ccc',
   },
 });
 

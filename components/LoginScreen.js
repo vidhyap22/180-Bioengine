@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Alert, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Alert, Image, ScrollView } from "react-native";
 import Colors from "../constants/Colors";
 import { supabase } from "../utils/supabaseClient";
 import LoadingIndicator from "./common/LoadingIndicator";
@@ -69,6 +69,7 @@ const LoginScreen = ({ navigation }) => {
 				<Text style={styles.welcomeSubtitle}>Sign in to continue</Text>
 			</View>
 
+            <ScrollView>
 			{/* Login Form */}
 			<View style={styles.formContainer}>
 				<View style={styles.inputContainer}>
@@ -107,6 +108,7 @@ const LoginScreen = ({ navigation }) => {
 
 				<Button title="Create an Account" onPress={() => navigation.navigate("Signup")} variant="secondary" size="large" style={styles.signupButton} />
 			</View>
+			</ScrollView>
 		</View>
 	);
 };
@@ -184,6 +186,7 @@ const styles = StyleSheet.create({
 	},
 	loginButton: {
 		marginTop: 10,
+		marginBottom: 10,
 	},
 	signupContainer: {
 		width: "100%",

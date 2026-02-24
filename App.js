@@ -16,7 +16,7 @@ import PatientDetailScreen from "./components/PatientDetailScreen";
 import EditPatientScreen from "./components/EditPatientScreen";
 import TestScreen from "./components/TestScreen";
 import TestDetailScreen from "./components/TestDetailScreen";
-
+import MediaPlayer from "./components/MediaPlayer";
 import ResetPassword from "./components/ResetPasswordScreen";
 import ForgotPassword from "./components/ForgotPasswordScreen";
 const Stack = createNativeStackNavigator();
@@ -83,6 +83,7 @@ export default function App() {
 							<Stack.Screen name="EditPatient" component={EditPatientScreen} />
 							<Stack.Screen name="Test" component={TestScreen} />
 							<Stack.Screen name="TestDetail" component={TestDetailScreen} />
+							<Stack.Screen name="MediaPlayer" component={MediaPlayer} />
 						</>
 					)}
 				</Stack.Navigator>
