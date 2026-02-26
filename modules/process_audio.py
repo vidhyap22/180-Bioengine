@@ -125,15 +125,21 @@ def process_audio(input_file, patient_id):
         "avg_nasalance_score": round(nasalance_score, 1),
         "nasal_audio_file": os.path.basename(nasal_mp3),
         "oral_audio_file": os.path.basename(oral_mp3),
-        "waveform_data" : {
-            "nasal_waveform" : nasal_waveform,
-            "oral_waveform" : oral_waveform
-        }
         "nasalance_data": {
             "duration": 0, # You might want to get actual duration
             "nasal_device": "External (icspeech)",
             "oral_device": "External (icspeech)",
             "source_file": base_name
+        }
+        #need function for this
+        "waveform_data" : {
+            "nasal_waveform" : nasal_waveform,
+            "oral_waveform" : oral_waveform
+        }
+        #need funciton for this
+        "pressure_data" : {
+            "oral_pressure_avg_kpa" : ,
+            "nasal_pressure_avg_kpa" :
         }
     }
 

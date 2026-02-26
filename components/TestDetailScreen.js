@@ -109,14 +109,44 @@ const TestDetailScreen = ({ route, navigation }) => {
 
         {/* Score */}
         <View style={styles.scoreCard}>
-          <Text style={styles.scoreTitle}>Nasalance Score</Text>
+          <View style = {styles.scoreRow}>
+            <View style={styles.sideContainer}>
+              <Text style={styles.scoreTitle}>Oral Pressure</Text>
+            </View>
 
-          <View style={styles.scoreValueContainer}>
-            <Text style={styles.scoreValue}>
-              {test.avg_nasalance_score?.toFixed(1) || 'N/A'}
-              <Text style={styles.scoreUnit}>%</Text>
-            </Text>
+            <View style={styles.centerContainer}>
+                <Text style={styles.scoreTitle}>Nasalance Score</Text>
+            </View>
+
+            <View style={styles.sideContainer}>
+              <Text style={styles.scoreTitle}>Nasal Pressure</Text>
+            </View>
           </View>
+
+          <View style={styles.scoreRow}>
+            <View style={styles.sideContainer}>
+              <Text style={styles.sideLabel}>
+                {test.pressure_data.oral_pressure_avg_kpa?.toFixed(1) || 'N/A'}
+                <Text style={styles.pressureUnit}>kPa</Text>
+
+              </Text>
+            </View>
+
+            <View style={styles.centerContainer}>
+              <Text style={styles.scoreValue}>
+                {test.avg_nasalance_score?.toFixed(1) || 'N/A'}
+                <Text style={styles.scoreUnit}>%</Text>
+              </Text>
+            </View>
+
+            <View style={styles.sideContainer}>
+                <Text style={styles.sideLabel}>
+                    {test.pressure_data.nasal_pressure_avg_kpa?.toFixed(1) || 'N/A'}
+                    <Text style={styles.pressureUnit}>kPa</Text>
+                </Text>
+            </View>
+          </View>
+
 
           <View style={styles.scoreInterpretation}>
             <Text style={styles.interpretationText}>
@@ -290,6 +320,21 @@ const styles = StyleSheet.create({
   scoreValueContainer: {
     marginVertical: 10,
   },
+
+  scoreValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 30,
+    marginTop: 10,
+  },
+
+  sideLabel: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.lightNavalBlue,
+  },
+
   scoreValue: {
     fontSize: 48,
     fontWeight: 'bold',
@@ -297,6 +342,31 @@ const styles = StyleSheet.create({
   },
   scoreUnit: {
     fontSize: 24,
+    color: Colors.lightNavalBlue,
+  },
+
+  pressureUnit: {
+      fontSize: 12,
+      color: Colors.lightNavalBlue,
+    },
+
+  sideContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: "100%",
+    marginTop: 10,
   },
   scoreInterpretation: {
     backgroundColor: Colors.lightNavalBlue,
