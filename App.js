@@ -19,6 +19,9 @@ import TestDetailScreen from "./components/TestDetailScreen";
 import MediaPlayer from "./components/MediaPlayer";
 import ResetPassword from "./components/ResetPasswordScreen";
 import ForgotPassword from "./components/ForgotPasswordScreen";
+import { DialogProvider } from "./components/common/DialogProvider";
+import { PaperProvider } from "react-native-paper";
+import ToastManager from "toastify-react-native";
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -60,34 +63,39 @@ export default function App() {
 
 	return (
 		<SafeAreaProvider>
-			<StatusBar barStyle="dark-content" />
-			<NavigationContainer>
-				<Stack.Navigator screenOptions={{ headerShown: false }}>
-					{!session ? (
-						<>
-							<Stack.Screen name="Login" component={LoginScreen} />
-							<Stack.Screen name="Signup" component={SignupScreen} />
-							<Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-							<Stack.Screen name="ResetPassword" component={ResetPassword} />
-						</>
-					) : !isEmailVerified ? (
-						<Stack.Screen name="Verification" component={VerificationScreen} />
-					) : (
-						<>
-							<Stack.Screen name="Dashboard" component={DashboardPage} />
-							<Stack.Screen name="HomeTab" component={PatientListScreen} />
-							<Stack.Screen name="Sessions" component={SessionsScreen} />
-							<Stack.Screen name="Profile" component={ProfileScreen} />
-							<Stack.Screen name="AddPatient" component={AddPatientScreen} />
-							<Stack.Screen name="PatientDetail" component={PatientDetailScreen} />
-							<Stack.Screen name="EditPatient" component={EditPatientScreen} />
-							<Stack.Screen name="Test" component={TestScreen} />
-							<Stack.Screen name="TestDetail" component={TestDetailScreen} />
-							<Stack.Screen name="MediaPlayer" component={MediaPlayer} />
-						</>
-					)}
-				</Stack.Navigator>
-			</NavigationContainer>
+			<PaperProvider>
+				<DialogProvider>
+					<StatusBar barStyle="dark-content" />
+					<NavigationContainer>
+						<Stack.Navigator screenOptions={{ headerShown: false }}>
+							{!session ? (
+								<>
+									<Stack.Screen name="Login" component={LoginScreen} />
+									<Stack.Screen name="Signup" component={SignupScreen} />
+									<Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+									<Stack.Screen name="ResetPassword" component={ResetPassword} />
+								</>
+							) : !isEmailVerified ? (
+								<Stack.Screen name="Verification" component={VerificationScreen} />
+							) : (
+								<>
+									<Stack.Screen name="Dashboard" component={DashboardPage} />
+									<Stack.Screen name="HomeTab" component={PatientListScreen} />
+									<Stack.Screen name="Sessions" component={SessionsScreen} />
+									<Stack.Screen name="Profile" component={ProfileScreen} />
+									<Stack.Screen name="AddPatient" component={AddPatientScreen} />
+									<Stack.Screen name="PatientDetail" component={PatientDetailScreen} />
+									<Stack.Screen name="EditPatient" component={EditPatientScreen} />
+									<Stack.Screen name="Test" component={TestScreen} />
+									<Stack.Screen name="TestDetail" component={TestDetailScreen} />
+									<Stack.Screen name="MediaPlayer" component={MediaPlayer} />
+								</>
+							)}
+						</Stack.Navigator>
+					</NavigationContainer>
+					<ToastManager />
+				</DialogProvider>
+			</PaperProvider>
 		</SafeAreaProvider>
 	);
 }

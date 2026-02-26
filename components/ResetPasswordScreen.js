@@ -5,6 +5,7 @@ import { supabase } from "../utils/supabaseClient";
 import LoadingIndicator from "./common/LoadingIndicator";
 import Button from "./common/Button";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { Toast } from "toastify-react-native";
 
 const ResetPasswordScreen = ({ navigation, route }) => {
 	const initialEmail = route?.params?.email ?? "";
@@ -13,11 +14,6 @@ const ResetPasswordScreen = ({ navigation, route }) => {
 	const [password, setPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [loading, setLoading] = useState(false);
-
-	const show = (title, msg) => {
-		if (Platform.OS === "web") window.alert(`${title}: ${msg}`);
-		else Alert.alert(title, msg);
-	};
 
 	const canSubmit = useMemo(() => {
 		return email.trim() && code.trim() && password && confirmPassword && password === confirmPassword;
@@ -29,22 +25,22 @@ const ResetPasswordScreen = ({ navigation, route }) => {
 
 		// Check valid inputs
 		if (!trimmedEmail) {
-			show("Error", "Please enter your email");
+			Toast.error("Please enter your email");
 			return;
 		}
 
 		if (!trimmedCode) {
-			show("Error", "Please enter the code from your email");
+			Toast.error("Please enter the code from your email");
 			return;
 		}
 
 		if (!password || !confirmPassword) {
-			show("Error", "Please enter and confirm your new password");
+			Toast.error("Please enter and confirm your new password");
 			return;
 		}
 
 		if (password !== confirmPassword) {
-			show("Error", "Passwords do not match");
+			Toast.error("Passwords do not match");
 			return;
 		}
 
@@ -62,10 +58,10 @@ const ResetPasswordScreen = ({ navigation, route }) => {
 			if (updateError) throw updateError;
 
 			await supabase.auth.signOut();
-			show("Success", "Password reset. Please log in with your new password.");
-			navigation.navigate("Login");
+			Toast.success("Password reset. Please log in with your new password.");
+			setTimeout(() => navigation.navigate("Login"), 700);
 		} catch (error) {
-			show("Error", error?.message ?? "Failed to reset password");
+			Toast.error(error?.message ?? "Failed to reset password");
 		} finally {
 			setLoading(false);
 		}
