@@ -1,5 +1,5 @@
 import React from "react";
-import AppDialog from "../AppDialog";
+import AppDialog from "./AppDialog";
 
 const DialogContext = React.createContext(null);
 
