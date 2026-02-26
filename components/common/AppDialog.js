@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Portal, Dialog, Button, Text } from "react-native-paper";
-import Colors from "../constants/Colors"; // adjust path if needed
+import Colors from "../../constants/Colors"; // adjust path if needed
 
 export default function AppDialog({ visible, title, message, actions, onDismiss, kind = "default" }) {
 	const isError = kind === "error";
