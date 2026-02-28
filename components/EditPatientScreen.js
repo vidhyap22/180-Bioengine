@@ -143,7 +143,7 @@ const EditPatientScreen = ({ route, navigation }) => {
         rightComponent={rightComponent}
       />
       
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
           <PatientFormFields
             name={name}
@@ -180,6 +180,12 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 20,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   saveButton: {
     color: Colors.lightNavalBlue,

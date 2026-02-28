@@ -121,7 +121,7 @@ const AddPatientScreen = ({ navigation }) => {
         }
       />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>
             {loading ? 'Saving...' : 'Fill in patient details'}
