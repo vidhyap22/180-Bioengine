@@ -1,14 +1,17 @@
-import React from "react";
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import Colors from "../constants/Colors";
-import { supabase } from "../utils/supabaseClient";
-import { Toast } from "toastify-react-native";
 import React from 'react';
-import {View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ScrollView,} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../constants/Colors';
 import { supabase } from '../utils/supabaseClient';
+import { Toast } from 'toastify-react-native';
 
 const DashboardOption = ({ title, subtitle, icon, onPress }) => (
 	<TouchableOpacity style={styles.optionCard} onPress={onPress}>

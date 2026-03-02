@@ -2,7 +2,19 @@ import React, { useState, useEffect } from "react";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput, Dimensions } from "react-native";
+import {
+	View,
+	Text,
+	StyleSheet,
+	ScrollView,
+	Image,
+	TouchableOpacity,
+	ActivityIndicator,
+	Alert,
+	TextInput,
+	Dimensions,
+	Platform,
+} from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import Colors from "../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +23,7 @@ import HeaderBar from "./common/HeaderBar";
 import PatientCard from "./common/PatientCard";
 import LoadingIndicator from "./common/LoadingIndicator";
 import Button from "./common/Button";
+import { Toast } from "toastify-react-native";
 
 const PatientDetailScreen = ({ route, navigation }) => {
 	const [patientData, setPatientData] = useState(route.params.patient);
@@ -38,35 +51,90 @@ const PatientDetailScreen = ({ route, navigation }) => {
 			if (error) throw error;
 
 			// Create CSV data array
-			const csvData = [["#", "Date Test was administered", "Average Nasalance"]];
+			const csvData = [
+				[
+					"#",
+					"Date Test was administered",
+					"Average Nasalance (%)",
+					"Oral Pressure (kPa)",
+					"Nasal Pressure (kPa)",
+				],
+			];
 
 			let count = 1;
 			data.forEach((record) => {
 				const formattedDate = formatDate(record.created_at);
 				const nasalance = record.avg_nasalance_score?.toFixed(1) || "N/A";
-				csvData.push([count, formattedDate, nasalance]);
+
+				// Safely extract pressure data (can be jsonb object or JSON string)
+				let oralPressure = "N/A";
+				let nasalPressure = "N/A";
+				try {
+					let pressure = record.pressure_data;
+					if (pressure) {
+						if (typeof pressure === "string") {
+							pressure = JSON.parse(pressure);
+						}
+						const oral = pressure?.oral_pressure_avg_kpa;
+						const nasal = pressure?.nasal_pressure_avg_kpa;
+						if (typeof oral === "number") {
+							oralPressure = oral.toFixed(1);
+						}
+						if (typeof nasal === "number") {
+							nasalPressure = nasal.toFixed(1);
+						}
+					}
+				} catch (e) {
+					console.warn(
+						"(PatientDetailScreen - handleExport) Failed to parse pressure_data:",
+						e
+					);
+				}
+
+				csvData.push([
+					count,
+					formattedDate,
+					nasalance,
+					oralPressure,
+					nasalPressure,
+				]);
 				count++;
 			});
 
 			// Convert to CSV string
 			const csvString = arrayToCSV(csvData);
 
-			// Create file path
+			// Common file name
 			const fileName = `patient_${patientData.mrn}_test_history.csv`;
-			const fileUri = FileSystem.documentDirectory + fileName;
 
-			// Write CSV to file
-			await FileSystem.writeAsStringAsync(fileUri, csvString);
+			if (Platform.OS === "web") {
+				// Web: trigger a browser download instead of using FileSystem
+				const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+				const url = window.URL.createObjectURL(blob);
+				const link = document.createElement("a");
+				link.href = url;
+				link.setAttribute("download", fileName);
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+				window.URL.revokeObjectURL(url);
 
-			// Share the file
-			if (await Sharing.isAvailableAsync()) {
-				await Sharing.shareAsync(fileUri, {
-					mimeType: "text/csv",
-					dialogTitle: "Export Patient Test History",
-					UTI: "public.comma-separated-values-text",
-				});
+				Toast.success("CSV downloaded");
 			} else {
-				Toast.success(`CSV file saved to: ${fileUri}`);
+				// Native: save to device and share
+				const fileUri = FileSystem.documentDirectory + fileName;
+
+				await FileSystem.writeAsStringAsync(fileUri, csvString);
+
+				if (await Sharing.isAvailableAsync()) {
+					await Sharing.shareAsync(fileUri, {
+						mimeType: "text/csv",
+						dialogTitle: "Export Patient Test History",
+						UTI: "public.comma-separated-values-text",
+					});
+				} else {
+					Toast.success(`CSV file saved to: ${fileUri}`);
+				}
 			}
 		} catch (error) {
 			console.error("Error exporting CSV:", error);
