@@ -10,7 +10,7 @@ const EditPatientScreen = ({ route, navigation }) => {
   const { patient } = route.params;
   const [name, setName] = useState(patient.full_name);
   const [gender, setGender] = useState(patient.gender);
-  const [mrn, setMrn] = useState(patient.mrn.toString());
+  const mrn = patient?.mrn?.toString() || '';
   const [loading, setLoading] = useState(false);
   const [birthDate, setBirthDate] = useState({
     year: new Date(patient.dob).getFullYear().toString(),
@@ -30,7 +30,7 @@ const EditPatientScreen = ({ route, navigation }) => {
     setBirthDate(prev => ({ ...prev, [type]: text }));
   };
 
-  const validateDate = (text, type) => {
+  const validateDate = (birthDate) => {
     const year = parseInt(birthDate.year);
     const month = parseInt(birthDate.month);
     const day = parseInt(birthDate.day);
@@ -80,7 +80,7 @@ const EditPatientScreen = ({ route, navigation }) => {
     }
 
     // call validation here
-    const dateValidation = validateDate();
+    const dateValidation = validateDate(birthDate);
     if (!dateValidation.isValid) {
       Alert.alert('Error', dateValidation.message);
       return;
@@ -154,7 +154,7 @@ const EditPatientScreen = ({ route, navigation }) => {
             onDateChange={handleDateChange}
             mrn={mrn}
             mrnEditable={false}
-            setMrn={setMrn}
+            //setMrn={setMrn}
             firstLanguage={firstLanguage}
             setFirstLanguage={setFirstLanguage}
             secondLanguage={secondLanguage}
