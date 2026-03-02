@@ -115,13 +115,15 @@ const AddPatientScreen = ({ navigation }) => {
 				}
 			/>
 
-			<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-				<View style={styles.progressContainer}>
-					<Text style={styles.progressText}>{loading ? "Saving..." : "Fill in patient details"}</Text>
-					<View style={styles.progressBar}>
-						<View style={[styles.progressFill, { width: `${calculateProgress()}%` }]} />
-					</View>
-				</View>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.progressContainer}>
+          <Text style={styles.progressText}>
+            {loading ? 'Saving...' : 'Fill in patient details'}
+          </Text>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${calculateProgress()}%` }]} />
+          </View>
+        </View>
 
 				<View style={styles.formContainer}>
 					<PatientFormFields

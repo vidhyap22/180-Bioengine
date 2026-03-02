@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Alert, Image, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Alert, Image, KeyboardAvoidingView,ScrollView,} from "react-native";
 import Colors from "../constants/Colors";
 import { supabase } from "../utils/supabaseClient";
 import LoadingIndicator from "./common/LoadingIndicator";
@@ -60,65 +60,66 @@ const LoginScreen = ({ navigation }) => {
 	}
 
 	return (
-		<View style={styles.container}>
-			{/* Arc Banner with Logo */}
-			<View style={styles.arcContainer}>
-				<View style={styles.arc} />
-				<Image source={require("../assets/logo.png")} style={styles.logo} resizeMode="contain" />
-			</View>
+		<KeyboardAvoidingView style={styles.container} behavior="height">
+			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled"
+			keyboardDismissMode="on-drag">
+				{/* Arc Banner with Logo */}
+				<View style={styles.arcContainer}>
+					<View style={styles.arc} />
+					<Image source={require("../assets/logo.png")} style={styles.logo} resizeMode="contain" />
+				</View>
 
-			{/* Welcome Text */}
-			<View style={styles.welcomeContainer}>
-				<Text style={styles.welcomeSubtitle}>Sign in to continue</Text>
-			</View>
+					{/* Welcome Text */}
+					<View style={styles.welcomeContainer}>
+						<Text style={styles.welcomeSubtitle}>Sign in to continue</Text>
+					</View>
 
-			<ScrollView>
-				{/* Login Form */}
-				<View style={styles.formContainer}>
-					<View style={styles.inputContainer}>
-						<Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
-						<TextInput
-							style={styles.input}
-							placeholder="Email"
-							value={email}
-							onChangeText={setEmail}
-							autoCapitalize="none"
-							keyboardType="email-address"
+					{/* Login Form */}
+					<View style={styles.formContainer}>
+						<View style={styles.inputContainer}>
+							<Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+							<TextInput
+								style={styles.input}
+								placeholder="Email"
+								value={email}
+								onChangeText={setEmail}
+								autoCapitalize="none"
+								keyboardType="email-address"
+							/>
+						</View>
+
+						<View style={styles.inputContainer}>
+							<Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+							<TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+						</View>
+
+						<TouchableOpacity style={styles.forgotPassword}>
+							<Text style={styles.forgotPasswordText} onPress={() => navigation.navigate("ForgotPassword")}>
+								Forgot Password?
+							</Text>
+						</TouchableOpacity>
+
+						<Button title="Sign In" onPress={handleLogin} disabled={loading} loading={loading} size="large" style={styles.loginButton} />
+					</View>
+
+					{/* Sign Up Section */}
+					<View style={styles.signupContainer}>
+						<View style={styles.dividerContainer}>
+							<View style={styles.divider} />
+							<Text style={styles.dividerText}>New to nasomEATR?</Text>
+							<View style={styles.divider} />
+						</View>
+
+						<Button 
+							title="Create an Account" 
+							onPress={() => navigation.navigate("Signup")} 
+							variant="secondary" 
+							size="large" 
+							style={styles.signupButton} 
 						/>
 					</View>
-
-					<View style={styles.inputContainer}>
-						<Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-						<TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-					</View>
-
-					<TouchableOpacity style={styles.forgotPassword}>
-						<Text style={styles.forgotPasswordText} onPress={() => navigation.navigate("ForgotPassword")}>
-							Forgot Password?
-						</Text>
-					</TouchableOpacity>
-
-					<Button title="Sign In" onPress={handleLogin} disabled={loading} loading={loading} size="large" style={styles.loginButton} />
-				</View>
-
-				{/* Sign Up Section */}
-				<View style={styles.signupContainer}>
-					<View style={styles.dividerContainer}>
-						<View style={styles.divider} />
-						<Text style={styles.dividerText}>New to nasomEATR?</Text>
-						<View style={styles.divider} />
-					</View>
-
-					<Button
-						title="Create an Account"
-						onPress={() => navigation.navigate("Signup")}
-						variant="secondary"
-						size="large"
-						style={styles.signupButton}
-					/>
-				</View>
 			</ScrollView>
-		</View>
+		</KeyboardAvoidingView>
 	);
 };
 
@@ -126,6 +127,10 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: Colors.white,
+	},
+	scrollContent: {
+		flexGrow: 1,
+		paddingBottom: 24,
 	},
 	arcContainer: {
 		height: arcHeight,
@@ -200,7 +205,7 @@ const styles = StyleSheet.create({
 	signupContainer: {
 		width: "100%",
 		paddingHorizontal: 20,
-		marginTop: "auto",
+		marginTop: 30, //this was changed from 'auto'->30
 		marginBottom: 30,
 	},
 	dividerContainer: {

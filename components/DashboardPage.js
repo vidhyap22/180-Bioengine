@@ -4,6 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "../constants/Colors";
 import { supabase } from "../utils/supabaseClient";
 import { Toast } from "toastify-react-native";
+import React from 'react';
+import {View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ScrollView,} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Colors from '../constants/Colors';
+import { supabase } from '../utils/supabaseClient';
+
 const DashboardOption = ({ title, subtitle, icon, onPress }) => (
 	<TouchableOpacity style={styles.optionCard} onPress={onPress}>
 		<View style={styles.optionIcon}>
@@ -49,107 +55,119 @@ const DashboardPage = ({ navigation }) => {
 		},
 	];
 
-	return (
-		<SafeAreaView style={styles.container}>
-			{/* Welcome Section */}
-			<View style={styles.welcomeSection}>
-				<Text style={styles.heading}>Welcome Back</Text>
-				<Text style={styles.subheading}>What would you like to do?</Text>
-			</View>
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.heading}>Welcome Back</Text>
+          <Text style={styles.subheading}>What would you like to do?</Text>
+        </View>
+        
+        {/* Options Grid */}
+        <View style={styles.optionsContainer}>
+          {options.map((option, index) => (
+            <DashboardOption
+              key={index}
+              {...option}
+            />
+          ))}
+        </View>
 
-			{/* Options Grid */}
-			<View style={styles.optionsContainer}>
-				{options.map((option, index) => (
-					<DashboardOption key={index} {...option} />
-				))}
-			</View>
-
-			{/* Footer Section */}
-			<View style={styles.footer}>
-				<Text style={styles.helpText}>If you think you have a medical emergency, call your doctor or 911 immediately.</Text>
-			</View>
-		</SafeAreaView>
-	);
+        {/* Footer Section */}
+        <View style={styles.footer}>
+            <Text style={styles.helpText}>If you think you have a medical emergency, call your doctor or 911 immediately.</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: Colors.white,
-	},
-	welcomeSection: {
-		padding: 20,
-		paddingTop: 60,
-		backgroundColor: Colors.white,
-	},
-	heading: {
-		fontSize: 28,
-		fontWeight: "bold",
-		color: Colors.lightNavalBlue,
-		marginBottom: 8,
-	},
-	subheading: {
-		fontSize: 16,
-		color: "#666",
-	},
-	optionsContainer: {
-		flex: 1,
-		padding: 20,
-		gap: 15,
-	},
-	optionCard: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 20,
-		backgroundColor: "#f8f9fa",
-		borderRadius: 15,
-		borderWidth: 1,
-		borderColor: "#eee",
-		elevation: 2,
-		shadowColor: "#000",
-		shadowOffset: {
-			width: 0,
-			height: 2,
-		},
-		shadowOpacity: 0.1,
-		shadowRadius: 3,
-	},
-	optionIcon: {
-		width: 48,
-		height: 48,
-		borderRadius: 24,
-		backgroundColor: "#e8eaf6",
-		justifyContent: "center",
-		alignItems: "center",
-		marginRight: 15,
-	},
-	optionText: {
-		flex: 1,
-	},
-	optionTitle: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: Colors.lightNavalBlue,
-		marginBottom: 4,
-	},
-	optionSubtitle: {
-		fontSize: 14,
-		color: "#666",
-	},
-	footer: {
-		padding: 20,
-		alignItems: "center",
-		borderTopWidth: 1,
-		borderTopColor: "transparent",
-	},
-	helpText: {
-		color: "#666",
-		fontSize: 14,
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 20,
-		textAlign: "center",
-	},
+  container: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    backgroundColor: Colors.white,
+    paddingBottom: 16,
+  },
+  welcomeSection: {
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: Colors.white,
+  },
+  heading: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: Colors.lightNavalBlue,
+    marginBottom: 8,
+  },
+  subheading: {
+    fontSize: 16,
+    color: '#666',
+  },
+  optionsContainer: {
+    //flex: 1,
+    padding: 20,
+    gap: 15,
+  },
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#eee',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  optionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#e8eaf6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  optionText: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.lightNavalBlue,
+    marginBottom: 4,
+  },
+  optionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  footer: {
+    marginTop: 'auto', //added 
+    padding: 20,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'transparent',
+  },
+  helpText: {
+    color: '#666',
+    fontSize: 14,
+    //flexDirection: 'row',
+    //alignItems: 'center',
+    //padding: 20,
+    textAlign: 'center',
+  },
 });
 
 export default DashboardPage;

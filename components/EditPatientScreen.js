@@ -126,56 +126,62 @@ const EditPatientScreen = ({ route, navigation }) => {
 		return <LoadingIndicator text="Saving changes..." fullScreen />;
 	}
 
-	return (
-		<View style={styles.container}>
-			<HeaderBar title="Edit Patient" onBack={() => navigation.goBack()} rightComponent={rightComponent} />
-
-			<ScrollView style={styles.container}>
-				<View style={styles.form}>
-					<PatientFormFields
-						name={name}
-						setName={setName}
-						gender={gender}
-						setGender={setGender}
-						birthDate={birthDate}
-						onDateChange={handleDateChange}
-						mrn={mrn}
-						mrnEditable={false}
-						setMrn={setMrn}
-						firstLanguage={firstLanguage}
-						setFirstLanguage={setFirstLanguage}
-						secondLanguage={secondLanguage}
-						setSecondLanguage={setSecondLanguage}
-						ethnicity={ethnicity}
-						setEthnicity={setEthnicity}
-						race={race}
-						setRace={setRace}
-						country={country}
-						setCountry={setCountry}
-					/>
-				</View>
-			</ScrollView>
-		</View>
-	);
+  return (
+    <View style={styles.container}>
+      <HeaderBar title="Edit Patient" onBack={() => navigation.goBack()} rightComponent={rightComponent} />
+      
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.form}>
+          <PatientFormFields
+            name={name}
+            setName={setName}
+            gender={gender}
+            setGender={setGender}
+            birthDate={birthDate}
+            onDateChange={handleDateChange}
+            mrn={mrn}
+            mrnEditable={false}
+            setMrn={setMrn}
+            firstLanguage={firstLanguage}
+            setFirstLanguage={setFirstLanguage}
+            secondLanguage={secondLanguage}
+            setSecondLanguage={setSecondLanguage}
+            ethnicity={ethnicity}
+            setEthnicity={setEthnicity}
+            race={race}
+            setRace={setRace}
+            country={country}
+            setCountry={setCountry}
+          />
+        </View>
+      </ScrollView>
+    </View>
+  );
 };
 
 // Styles unchanged
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: Colors.white,
-	},
-	form: {
-		padding: 20,
-	},
-	saveButton: {
-		color: Colors.lightNavalBlue,
-		fontSize: 16,
-		fontWeight: "600",
-	},
-	buttonDisabled: {
-		opacity: 0.5,
-	},
+  container: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  form: {
+    padding: 20,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  saveButton: {
+    color: Colors.lightNavalBlue,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
 });
 
 export default EditPatientScreen;
