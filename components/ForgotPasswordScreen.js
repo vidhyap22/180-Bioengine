@@ -5,6 +5,7 @@ import { supabase } from "../utils/supabaseClient";
 import LoadingIndicator from "./common/LoadingIndicator";
 import Button from "./common/Button";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { Toast } from "toastify-react-native";
 
 const ForgotPasswordScreen = ({ navigation }) => {
 	const [email, setEmail] = useState("");
@@ -14,7 +15,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
 		const trimmedEmail = email.trim();
 
 		if (!trimmedEmail) {
-			Alert.alert("Error", "Please enter your email");
+			Toast.error("Please enter your email");
 			return;
 		}
 
@@ -28,11 +29,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
 			if (error) throw error;
 
-			Alert.alert("Check your email", "If an account exists for this email, you’ll receive a code shortly.");
+			Toast.success("If an account exists, you will receive an email with a code shortly.");
 
 			navigation.navigate("ResetPassword", { email: trimmedEmail });
 		} catch (error) {
-			Alert.alert("Error", error?.message ?? "Failed to send code");
+			Toast.error(error?.message ?? "Failed to send code");
 		} finally {
 			setLoading(false);
 		}

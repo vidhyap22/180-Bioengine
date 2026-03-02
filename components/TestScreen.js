@@ -68,14 +68,14 @@ const TestScreen = ({ navigation, route }) => {
   // Permission state
   const [hasPermission, setHasPermission] = useState(false);
 
-  // Add loading state
-  const [loading, setLoading] = useState(false);
-  const [processingAudio, setProcessingAudio] = useState(false);
-  
-  // Event subscription refs
-  const deviceConnectedSubscription = useRef(null);
-  const deviceDisconnectedSubscription = useRef(null);
-  const deviceListChangedSubscription = useRef(null);
+	// Add loading state
+	const [loading, setLoading] = useState(false);
+	const [processingAudio, setProcessingAudio] = useState(false);
+
+	// Event subscription refs
+	const deviceConnectedSubscription = useRef(null);
+	const deviceDisconnectedSubscription = useRef(null);
+	const deviceListChangedSubscription = useRef(null);
 
   // Request microphone permissions when component mounts
   useEffect(() => {
@@ -120,221 +120,194 @@ const TestScreen = ({ navigation, route }) => {
     };
   }, []);
 
-  // Setup pulse animation
-  useEffect(() => {
-    if (recording) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.2,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
-    
-    return () => {
-      Animated.timing(pulseAnim).stop();
-    };
-  }, [recording]);
+	// Setup pulse animation
+	useEffect(() => {
+		if (recording) {
+			Animated.loop(
+				Animated.sequence([
+					Animated.timing(pulseAnim, {
+						toValue: 1.2,
+						duration: 500,
+						useNativeDriver: true,
+					}),
+					Animated.timing(pulseAnim, {
+						toValue: 1,
+						duration: 500,
+						useNativeDriver: true,
+					}),
+				]),
+			).start();
+		} else {
+			pulseAnim.setValue(1);
+		}
 
-  // Timer management
-  useEffect(() => {
-    if (recording) {
-      const interval = setInterval(() => {
-        setTimer(prevTimer => prevTimer + 1);
-      }, 1000);
-      setTimerInterval(interval);
-    } else if (timerInterval) {
-      clearInterval(timerInterval);
-      setTimerInterval(null);
-    }
-    
-    return () => {
-      if (timerInterval) clearInterval(timerInterval);
-    };
-  }, [recording]);
+		return () => {
+			Animated.timing(pulseAnim).stop();
+		};
+	}, [recording]);
 
-  const isEnhancedAudioAvailable = () => {
-    if (!EnhancedAudioModule.isAvailable || !EnhancedAudioModule.isAvailable()) {
-      Alert.alert(
-        "Enhanced Audio Not Available",
-        "The enhanced audio recording module is not available on this device. Some features may not work correctly.",
-        [{ text: "OK" }]
-      );
-      return false;
-    }
-    return true;
-  };
+	// Timer management
+	useEffect(() => {
+		if (recording) {
+			const interval = setInterval(() => {
+				setTimer((prevTimer) => prevTimer + 1);
+			}, 1000);
+			setTimerInterval(interval);
+		} else if (timerInterval) {
+			clearInterval(timerInterval);
+			setTimerInterval(null);
+		}
 
-  const startDeviceScan = async () => {
-    if (!isEnhancedAudioAvailable()) return;
-    
-    try {
-      setIsScanning(true);
-      
-      // Subscribe to device events
-      deviceConnectedSubscription.current = EnhancedAudioModule.addDeviceConnectedListener(
-        device => {
-          Alert.alert(
-            'Device Connected',
-            `${device.name} connected`,
-            [{ text: 'OK' }]
-          );
-          refreshDeviceList();
-        }
-      );
-      
-      deviceDisconnectedSubscription.current = EnhancedAudioModule.addDeviceDisconnectedListener(
-        device => {
-          Alert.alert(
-            'Device Disconnected',
-            `${device.name} disconnected`,
-            [{ text: 'OK' }]
-          );
-          
-          // If the disconnected device was selected, reset selection
-          if (selectedDevice && selectedDevice.id === device.id) {
-            setSelectedDevice(null);
-          }
-          
-          refreshDeviceList();
-        }
-      );
-      
-      deviceListChangedSubscription.current = EnhancedAudioModule.addDeviceListChangedListener(
-        () => refreshDeviceList()
-      );
-      
-      // Start scanning for devices
-      await EnhancedAudioModule.startDeviceScan();
-      
-      // Get initial device list
-      refreshDeviceList();
-    } catch (error) {
-      console.error('Error starting device scan:', error);
-      Alert.alert('Device Scan Error', 'Failed to start scanning for audio devices.');
-    }
-  };
-  
-  const stopDeviceScan = async () => {
-    if (!isEnhancedAudioAvailable() || !isScanning) return;
-    
-    try {
-      await EnhancedAudioModule.stopDeviceScan();
-      setIsScanning(false);
-    } catch (error) {
-      console.error('Error stopping device scan:', error);
-    }
-  };
-  
-  const refreshDeviceList = async () => {
-    if (!isEnhancedAudioAvailable()) return;
-    
-    try {
-      const devices = await EnhancedAudioModule.getAvailableDevices();
-      
-      // Add special check for DJI devices
-      const enhancedDevices = devices.map(device => {
-        if (device.name && device.name.toLowerCase().includes('dji')) {
-          return {
-            ...device,
-            capabilities: {
-              ...device.capabilities,
-              stereo: true
-            }
-          };
-        }
-        return device;
-      });
-      
-      setAudioDevices(enhancedDevices);
-      
-      // If no device is selected yet, try to select the default
-      if (!selectedDevice) {
-        const currentDevice = await EnhancedAudioModule.getCurrentDevice();
-        if (currentDevice) {
-          setSelectedDevice(currentDevice);
-        }
-        
-        // Auto-select DJI device if available
-        const djiDevice = enhancedDevices.find(d => 
-          d.name && d.name.toLowerCase().includes('dji'));
-        
-        if (djiDevice) {
-          selectAudioDevice(djiDevice);
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing device list:', error);
-    }
-  };
-  
-  const selectAudioDevice = async (device) => {
-    if (!isEnhancedAudioAvailable()) return;
-    
-    try {
-      // Do not allow changing devices during recording
-      if (recording) {
-        Alert.alert('Cannot Change Device', 'Stop recording before changing the input device.');
-        return;
-      }
-      
-      const selected = await EnhancedAudioModule.selectDevice(device.id);
-      setSelectedDevice(selected);
-      setDeviceSelectorVisible(false);
-      
-      // Check if this device supports stereo recording
-      const stereoSupported = await EnhancedAudioModule.supportsStereoRecording(device.id);
-      
-      if (!stereoSupported) {
-        Alert.alert(
-          'Stereo Recording Not Supported',
-          'This device may not support stereo recording, which is required for nasal/oral calibration.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (error) {
-      console.error('Error selecting device:', error);
-      Alert.alert('Device Selection Error', error.message || 'Failed to select audio device.');
-    }
-  };
+		return () => {
+			if (timerInterval) clearInterval(timerInterval);
+		};
+	}, [recording]);
 
-  // Request microphone permission
-  const requestMicrophonePermission = async () => {
-    try {
-      const { status } = await Audio.requestPermissionsAsync();
-      setHasPermission(status === 'granted');
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Microphone access is required for recording audio.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
-      } else {
-        // Initialize Audio session for recording
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to get microphone permission', err);
-      Alert.alert('Error', 'Failed to access microphone');
-    }
-  };
+	const isEnhancedAudioAvailable = () => {
+		if (!EnhancedAudioModule.isAvailable || !EnhancedAudioModule.isAvailable()) {
+			Toast.warn("Enhanced audio module not available on this device.");
+			return false;
+		}
+		return true;
+	};
+
+	const startDeviceScan = async () => {
+		if (!isEnhancedAudioAvailable()) return;
+
+		try {
+			setIsScanning(true);
+
+			// Subscribe to device events
+			deviceConnectedSubscription.current = EnhancedAudioModule.addDeviceConnectedListener((device) => {
+				Toast.success(`${device.name} connected`);
+				refreshDeviceList();
+			});
+
+			deviceDisconnectedSubscription.current = EnhancedAudioModule.addDeviceDisconnectedListener((device) => {
+				Toast.info(`${device.name} disconnected`);
+
+				// If the disconnected device was selected, reset selection
+				if (selectedDevice && selectedDevice.id === device.id) {
+					setSelectedDevice(null);
+				}
+
+				refreshDeviceList();
+			});
+
+			deviceListChangedSubscription.current = EnhancedAudioModule.addDeviceListChangedListener(() => refreshDeviceList());
+
+			// Start scanning for devices
+			await EnhancedAudioModule.startDeviceScan();
+
+			// Get initial device list
+			refreshDeviceList();
+		} catch (error) {
+			console.error("Error starting device scan:", error);
+			Toast.error("Failed to start scanning for audio devices.");
+		}
+	};
+
+	const stopDeviceScan = async () => {
+		if (!isEnhancedAudioAvailable() || !isScanning) return;
+
+		try {
+			await EnhancedAudioModule.stopDeviceScan();
+			setIsScanning(false);
+		} catch (error) {
+			console.error("Error stopping device scan:", error);
+		}
+	};
+
+	const refreshDeviceList = async () => {
+		if (!isEnhancedAudioAvailable()) return;
+
+		try {
+			const devices = await EnhancedAudioModule.getAvailableDevices();
+
+			// Add special check for DJI devices
+			const enhancedDevices = devices.map((device) => {
+				if (device.name && device.name.toLowerCase().includes("dji")) {
+					return {
+						...device,
+						capabilities: {
+							...device.capabilities,
+							stereo: true,
+						},
+					};
+				}
+				return device;
+			});
+
+			setAudioDevices(enhancedDevices);
+
+			// If no device is selected yet, try to select the default
+			if (!selectedDevice) {
+				const currentDevice = await EnhancedAudioModule.getCurrentDevice();
+				if (currentDevice) {
+					setSelectedDevice(currentDevice);
+				}
+
+				// Auto-select DJI device if available
+				const djiDevice = enhancedDevices.find((d) => d.name && d.name.toLowerCase().includes("dji"));
+
+				if (djiDevice) {
+					selectAudioDevice(djiDevice);
+				}
+			}
+		} catch (error) {
+			console.error("Error refreshing device list:", error);
+		}
+	};
+
+	const selectAudioDevice = async (device) => {
+		if (!isEnhancedAudioAvailable()) return;
+
+		try {
+			// Do not allow changing devices during recording
+			if (recording) {
+				Toast.warn("Stop recording before changing the input device.");
+				return;
+			}
+
+			const selected = await EnhancedAudioModule.selectDevice(device.id);
+			setSelectedDevice(selected);
+			setDeviceSelectorVisible(false);
+
+			// Check if this device supports stereo recording
+			const stereoSupported = await EnhancedAudioModule.supportsStereoRecording(device.id);
+
+			if (!stereoSupported) {
+				Toast.warn("This device may not support stereo recording (needed for calibration).");
+			}
+		} catch (error) {
+			console.error("Error selecting device:", error);
+			Toast.error(error?.message || "Failed to select audio device.");
+		}
+	};
+
+	// Request microphone permission
+	const requestMicrophonePermission = async () => {
+		try {
+			const { status } = await Audio.requestPermissionsAsync();
+			setHasPermission(status === "granted");
+
+			if (status !== "granted") {
+				Toast.error("Microphone permission is required.");
+			} else {
+				// Initialize Audio session for recording
+				await Audio.setAudioModeAsync({
+					allowsRecordingIOS: true,
+					playsInSilentModeIOS: true,
+					staysActiveInBackground: true,
+					shouldDuckAndroid: true,
+					playThroughEarpieceAndroid: false,
+				});
+			}
+		} catch (err) {
+			console.error("Failed to get microphone permission", err);
+			Toast.error("Failed to access microphone.");
+		}
+	};
 
   const handleBackPress = () => {
     if (recording || stereoRecording) {
@@ -641,144 +614,139 @@ const TestScreen = ({ navigation, route }) => {
     }
   };
 
-  const processRecording = async (stereoPath) => {
-    if (!isEnhancedAudioAvailable()) return;
-    
-    try {
-      setProcessingAudio(true);
-      
-      const timestamp = Date.now();
-      const nasalFileName = `nasal_${timestamp}.pcm`;
-      const oralFileName = `oral_${timestamp}.pcm`;
-      
-      const nasalPath = `${FileSystem.documentDirectory}${nasalFileName}`;
-      const oralPath = `${FileSystem.documentDirectory}${oralFileName}`;
-      
-      console.log(`Processing stereo recording: ${stereoPath}`);
-      console.log(`Target paths - Nasal: ${nasalPath}, Oral: ${oralPath}`);
-      
-      // Use the native module to split the stereo recording into mono channels
-      const result = await EnhancedAudioModule.splitStereoToMono(
-        stereoPath,
-        nasalPath, // left channel = nasal mic
-        oralPath   // right channel = oral mic
-      );
-      
-      console.log("Split complete, result:", result);
-      
-      // Calculate RMS values for both channels using the native module
-      const nasalRms = await EnhancedAudioModule.calculateRms(result.leftPath);
-      const oralRms = await EnhancedAudioModule.calculateRms(result.rightPath);
-      
-      console.log(`RMS values - Nasal: ${nasalRms}, Oral: ${oralRms}`);
-      
-      // Calculate nasalance score (nasal / (nasal + oral) * 100)
-      const calculatedScore = (nasalRms / (nasalRms + oralRms)) * 100;
-      
-      console.log(`Calculated nasalance score: ${calculatedScore}`);
-      
-      // Store the processed files and score
-      const recordingDuration = stereoRecording ? stereoRecording.duration : timer;
-      
-      setNasalRecording({
-        duration: recordingDuration,
-        timestamp: new Date().toISOString(),
-        uri: result.leftPath,
-        localPath: result.leftPath
-      });
-      
-      setOralRecording({
-        duration: recordingDuration,
-        timestamp: new Date().toISOString(),
-        uri: result.rightPath,
-        localPath: result.rightPath
-      });
-      
-      setNasalanceScore(calculatedScore);
-      setProcessingAudio(false);
-      
-      // Move to review step
-      setCurrentStep(3);
-    } catch (error) {
-      console.error('Failed to process recording', error);
-      Alert.alert('Processing Error', 'Failed to process recording: ' + error.message);
-      setProcessingAudio(false);
-    }
-  };
-  
-  const togglePlayNasal = async () => {
-    if (isPlayingNasal) {
-      if (nasalSound) {
-        await nasalSound.stopAsync();
-        setIsPlayingNasal(false);
-      }
-    } else {
-      try {
-        let sound = nasalSound;
-        if (!sound) {
-          const { sound: newSound } = await Audio.Sound.createAsync(
-            { uri: nasalRecording.uri },
-            { shouldPlay: true }
-          );
-          sound = newSound;
-          setNasalSound(sound);
-        } else {
-          await sound.playFromPositionAsync(0);
-        }
-        
-        setIsPlayingNasal(true);
-        
-        sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.didJustFinish) {
-            setIsPlayingNasal(false);
-          }
-        });
-      } catch (error) {
-        console.error('Failed to play nasal recording', error);
-        Alert.alert('Playback Error', 'Failed to play recording');
-      }
-    }
-  };
-  
-  const togglePlayOral = async () => {
-    if (isPlayingOral) {
-      if (oralSound) {
-        await oralSound.stopAsync();
-        setIsPlayingOral(false);
-      }
-    } else {
-      try {
-        let sound = oralSound;
-        if (!sound) {
-          const { sound: newSound } = await Audio.Sound.createAsync(
-            { uri: oralRecording.uri },
-            { shouldPlay: true }
-          );
-          sound = newSound;
-          setOralSound(sound);
-        } else {
-          await sound.playFromPositionAsync(0);
-        }
-        
-        setIsPlayingOral(true);
-        
-        sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.didJustFinish) {
-            setIsPlayingOral(false);
-          }
-        });
-      } catch (error) {
-        console.error('Failed to play oral recording', error);
-        Alert.alert('Playback Error', 'Failed to play recording');
-      }
-    }
-  };
-  
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+	const processRecording = async (stereoPath) => {
+		if (!isEnhancedAudioAvailable()) return;
+
+		try {
+			setProcessingAudio(true);
+
+			const timestamp = Date.now();
+			const nasalFileName = `nasal_${timestamp}.pcm`;
+			const oralFileName = `oral_${timestamp}.pcm`;
+
+			const nasalPath = `${FileSystem.documentDirectory}${nasalFileName}`;
+			const oralPath = `${FileSystem.documentDirectory}${oralFileName}`;
+
+			console.log(`Processing stereo recording: ${stereoPath}`);
+			console.log(`Target paths - Nasal: ${nasalPath}, Oral: ${oralPath}`);
+
+			// Use the native module to split the stereo recording into mono channels
+			const result = await EnhancedAudioModule.splitStereoToMono(
+				stereoPath,
+				nasalPath, // left channel = nasal mic
+				oralPath, // right channel = oral mic
+			);
+
+			console.log("Split complete, result:", result);
+
+			// Calculate RMS values for both channels using the native module
+			const nasalRms = await EnhancedAudioModule.calculateRms(result.leftPath);
+			const oralRms = await EnhancedAudioModule.calculateRms(result.rightPath);
+
+			console.log(`RMS values - Nasal: ${nasalRms}, Oral: ${oralRms}`);
+
+			// Calculate nasalance score (nasal / (nasal + oral) * 100)
+			const calculatedScore = (nasalRms / (nasalRms + oralRms)) * 100;
+
+			console.log(`Calculated nasalance score: ${calculatedScore}`);
+
+			// Store the processed files and score
+			const recordingDuration = stereoRecording ? stereoRecording.duration : timer;
+
+			setNasalRecording({
+				duration: recordingDuration,
+				timestamp: new Date().toISOString(),
+				uri: result.leftPath,
+				localPath: result.leftPath,
+			});
+
+			setOralRecording({
+				duration: recordingDuration,
+				timestamp: new Date().toISOString(),
+				uri: result.rightPath,
+				localPath: result.rightPath,
+			});
+
+			setNasalanceScore(calculatedScore);
+			setProcessingAudio(false);
+
+			// Move to review step
+			setCurrentStep(3);
+		} catch (error) {
+			console.error("Failed to process recording", error);
+			Toast.error(error?.message ? `Failed to process recording: ${error.message}` : "Failed to process recording.");
+
+			setProcessingAudio(false);
+		}
+	};
+
+	const togglePlayNasal = async () => {
+		if (isPlayingNasal) {
+			if (nasalSound) {
+				await nasalSound.stopAsync();
+				setIsPlayingNasal(false);
+			}
+		} else {
+			try {
+				let sound = nasalSound;
+				if (!sound) {
+					const { sound: newSound } = await Audio.Sound.createAsync({ uri: nasalRecording.uri }, { shouldPlay: true });
+					sound = newSound;
+					setNasalSound(sound);
+				} else {
+					await sound.playFromPositionAsync(0);
+				}
+
+				setIsPlayingNasal(true);
+
+				sound.setOnPlaybackStatusUpdate((status) => {
+					if (status.didJustFinish) {
+						setIsPlayingNasal(false);
+					}
+				});
+			} catch (error) {
+				console.error("Failed to play nasal recording", error);
+				Toast.error("Failed to play recording.");
+			}
+		}
+	};
+
+	const togglePlayOral = async () => {
+		if (isPlayingOral) {
+			if (oralSound) {
+				await oralSound.stopAsync();
+				setIsPlayingOral(false);
+			}
+		} else {
+			try {
+				let sound = oralSound;
+				if (!sound) {
+					const { sound: newSound } = await Audio.Sound.createAsync({ uri: oralRecording.uri }, { shouldPlay: true });
+					sound = newSound;
+					setOralSound(sound);
+				} else {
+					await sound.playFromPositionAsync(0);
+				}
+
+				setIsPlayingOral(true);
+
+				sound.setOnPlaybackStatusUpdate((status) => {
+					if (status.didJustFinish) {
+						setIsPlayingOral(false);
+					}
+				});
+			} catch (error) {
+				console.error("Failed to play oral recording", error);
+				Toast.error("Failed to play recording.");
+			}
+		}
+	};
+
+	const formatTime = (seconds) => {
+		const mins = Math.floor(seconds / 60);
+		const secs = seconds % 60;
+		return `${mins}:${secs.toString().padStart(2, "0")}`;
+	};
 
   const uploadAudioToStorage = async (uri, fileName) => {
     try {

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Alert, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Alert, Image, KeyboardAvoidingView,ScrollView,} from "react-native";
 import Colors from "../constants/Colors";
 import { supabase } from "../utils/supabaseClient";
 import LoadingIndicator from "./common/LoadingIndicator";
 import Button from "./common/Button";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { Toast } from "toastify-react-native";
 
 const { width } = Dimensions.get("window");
 const arcHeight = 300; // Height of the arc background
@@ -16,7 +17,7 @@ const LoginScreen = ({ navigation }) => {
 
 	const handleLogin = async () => {
 		if (!email || !password) {
-			Alert.alert("Error", "Please fill in all fields");
+			Toast.error("Please fill in all fields");
 			return;
 		}
 
@@ -31,22 +32,24 @@ const LoginScreen = ({ navigation }) => {
 			if (error) {
 				switch (error.code) {
 					case "email_not_confirmed":
-						Alert.alert("Email Not Verified", "Create and verify an account before logging in.");
+						Toast.error("Create and verify your account before logging in.");
 						return;
 
 					case "invalid_credentials":
-						Alert.alert("Invalid Credentials", "Email or password is incorrect.");
+						Toast.error("Email or password is incorrect.");
+
 						return;
 
 					default:
-						Alert.alert("Error", error.message);
+						Toast.error(error?.message || "Something went wrong.");
+
 						return;
 				}
 			}
 
 			// Successful login — navigation handled elsewhere
 		} catch (error) {
-			Alert.alert("Error", "Something went wrong. Try again.");
+			Toast.error(error?.message || "Something went wrong.");
 		} finally {
 			setLoading(false);
 		}
@@ -57,57 +60,66 @@ const LoginScreen = ({ navigation }) => {
 	}
 
 	return (
-		<View style={styles.container}>
-			{/* Arc Banner with Logo */}
-			<View style={styles.arcContainer}>
-				<View style={styles.arc} />
-				<Image source={require("../assets/logo.png")} style={styles.logo} resizeMode="contain" />
-			</View>
-
-			{/* Welcome Text */}
-			<View style={styles.welcomeContainer}>
-				<Text style={styles.welcomeSubtitle}>Sign in to continue</Text>
-			</View>
-
-			{/* Login Form */}
-			<View style={styles.formContainer}>
-				<View style={styles.inputContainer}>
-					<Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
-					<TextInput
-						style={styles.input}
-						placeholder="Email"
-						value={email}
-						onChangeText={setEmail}
-						autoCapitalize="none"
-						keyboardType="email-address"
-					/>
+		<KeyboardAvoidingView style={styles.container} behavior="height">
+			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled"
+			keyboardDismissMode="on-drag">
+				{/* Arc Banner with Logo */}
+				<View style={styles.arcContainer}>
+					<View style={styles.arc} />
+					<Image source={require("../assets/logo.png")} style={styles.logo} resizeMode="contain" />
 				</View>
 
-				<View style={styles.inputContainer}>
-					<Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-					<TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-				</View>
+					{/* Welcome Text */}
+					<View style={styles.welcomeContainer}>
+						<Text style={styles.welcomeSubtitle}>Sign in to continue</Text>
+					</View>
 
-				<TouchableOpacity style={styles.forgotPassword}>
-					<Text style={styles.forgotPasswordText} onPress={() => navigation.navigate("ForgotPassword")}>
-						Forgot Password?
-					</Text>
-				</TouchableOpacity>
+					{/* Login Form */}
+					<View style={styles.formContainer}>
+						<View style={styles.inputContainer}>
+							<Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+							<TextInput
+								style={styles.input}
+								placeholder="Email"
+								value={email}
+								onChangeText={setEmail}
+								autoCapitalize="none"
+								keyboardType="email-address"
+							/>
+						</View>
 
-				<Button title="Sign In" onPress={handleLogin} disabled={loading} loading={loading} size="large" style={styles.loginButton} />
-			</View>
+						<View style={styles.inputContainer}>
+							<Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+							<TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+						</View>
 
-			{/* Sign Up Section */}
-			<View style={styles.signupContainer}>
-				<View style={styles.dividerContainer}>
-					<View style={styles.divider} />
-					<Text style={styles.dividerText}>New to nasomEATR?</Text>
-					<View style={styles.divider} />
-				</View>
+						<TouchableOpacity style={styles.forgotPassword}>
+							<Text style={styles.forgotPasswordText} onPress={() => navigation.navigate("ForgotPassword")}>
+								Forgot Password?
+							</Text>
+						</TouchableOpacity>
 
-				<Button title="Create an Account" onPress={() => navigation.navigate("Signup")} variant="secondary" size="large" style={styles.signupButton} />
-			</View>
-		</View>
+						<Button title="Sign In" onPress={handleLogin} disabled={loading} loading={loading} size="large" style={styles.loginButton} />
+					</View>
+
+					{/* Sign Up Section */}
+					<View style={styles.signupContainer}>
+						<View style={styles.dividerContainer}>
+							<View style={styles.divider} />
+							<Text style={styles.dividerText}>New to nasomEATR?</Text>
+							<View style={styles.divider} />
+						</View>
+
+						<Button 
+							title="Create an Account" 
+							onPress={() => navigation.navigate("Signup")} 
+							variant="secondary" 
+							size="large" 
+							style={styles.signupButton} 
+						/>
+					</View>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 };
 
@@ -115,6 +127,10 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: Colors.white,
+	},
+	scrollContent: {
+		flexGrow: 1,
+		paddingBottom: 24,
 	},
 	arcContainer: {
 		height: arcHeight,
@@ -184,11 +200,12 @@ const styles = StyleSheet.create({
 	},
 	loginButton: {
 		marginTop: 10,
+		marginBottom: 10,
 	},
 	signupContainer: {
 		width: "100%",
 		paddingHorizontal: 20,
-		marginTop: "auto",
+		marginTop: 30, //this was changed from 'auto'->30
 		marginBottom: 30,
 	},
 	dividerContainer: {
