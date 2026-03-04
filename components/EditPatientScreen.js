@@ -8,17 +8,17 @@ import LoadingIndicator from "./common/LoadingIndicator";
 import { Toast } from "toastify-react-native";
 
 const EditPatientScreen = ({ route, navigation }) => {
-  const { patient } = route.params;
-  const [name, setName] = useState(patient.full_name);
-  const [gender, setGender] = useState(patient.gender);
-  //const [mrn, setMrn] = useState(patient.mrn.toString());
-  const mrn = patient?.mrn?.toString() || '';
-  const [loading, setLoading] = useState(false);
-  const [birthDate, setBirthDate] = useState({
-    year: new Date(patient.dob).getFullYear().toString(),
-    month: (new Date(patient.dob).getMonth() + 1).toString().padStart(2, '0'),
-    day: new Date(patient.dob).getDate().toString().padStart(2, '0')
-  });
+	const { patient } = route.params;
+	const [name, setName] = useState(patient.full_name);
+	const [gender, setGender] = useState(patient.gender);
+	//const [mrn, setMrn] = useState(patient.mrn.toString());
+	const mrn = patient?.mrn?.toString() || "";
+	const [loading, setLoading] = useState(false);
+	const [birthDate, setBirthDate] = useState({
+		year: new Date(patient.dob).getFullYear().toString(),
+		month: (new Date(patient.dob).getMonth() + 1).toString().padStart(2, "0"),
+		day: new Date(patient.dob).getDate().toString().padStart(2, "0"),
+	});
 
 	// Demographic fields
 	const [firstLanguage, setFirstLanguage] = useState(patient.first_language || "");
@@ -32,11 +32,11 @@ const EditPatientScreen = ({ route, navigation }) => {
 		setBirthDate((prev) => ({ ...prev, [type]: text }));
 	};
 
-  const validateDate = (birthDate) => {
-    const year = parseInt(birthDate.year);
-    const month = parseInt(birthDate.month);
-    const day = parseInt(birthDate.day);
-    const currentYear = new Date().getFullYear();
+	const validateDate = (birthDate) => {
+		const year = parseInt(birthDate.year);
+		const month = parseInt(birthDate.month);
+		const day = parseInt(birthDate.day);
+		const currentYear = new Date().getFullYear();
 
 		// Check if all fields have values and are numbers
 		if (!birthDate.year.trim() || !birthDate.month.trim() || !birthDate.day.trim()) {
@@ -79,12 +79,12 @@ const EditPatientScreen = ({ route, navigation }) => {
 			return;
 		}
 
-    // call validation here
-    const dateValidation = validateDate(birthDate);
-    if (!dateValidation.isValid) {
-      Alert.alert('Error', dateValidation.message);
-      return;
-    }
+		// call validation here
+		const dateValidation = validateDate(birthDate);
+		if (!dateValidation.isValid) {
+			Alert.alert("Error", dateValidation.message);
+			return;
+		}
 
 		try {
 			setLoading(true);
@@ -127,62 +127,62 @@ const EditPatientScreen = ({ route, navigation }) => {
 		return <LoadingIndicator text="Saving changes..." fullScreen />;
 	}
 
-  return (
-    <View style={styles.container}>
-      <HeaderBar title="Edit Patient" onBack={() => navigation.goBack()} rightComponent={rightComponent} />
-      
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.form}>
-          <PatientFormFields
-            name={name}
-            setName={setName}
-            gender={gender}
-            setGender={setGender}
-            birthDate={birthDate}
-            onDateChange={handleDateChange}
-            mrn={mrn}
-            mrnEditable={false}
-            //setMrn={setMrn}
-            firstLanguage={firstLanguage}
-            setFirstLanguage={setFirstLanguage}
-            secondLanguage={secondLanguage}
-            setSecondLanguage={setSecondLanguage}
-            ethnicity={ethnicity}
-            setEthnicity={setEthnicity}
-            race={race}
-            setRace={setRace}
-            country={country}
-            setCountry={setCountry}
-          />
-        </View>
-      </ScrollView>
-    </View>
-  );
+	return (
+		<View style={styles.container}>
+			<HeaderBar title="Edit Patient" onBack={() => navigation.goBack()} rightComponent={rightComponent} />
+
+			<ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+				<View style={styles.form}>
+					<PatientFormFields
+						name={name}
+						setName={setName}
+						gender={gender}
+						setGender={setGender}
+						birthDate={birthDate}
+						onDateChange={handleDateChange}
+						mrn={mrn}
+						mrnEditable={false}
+						//setMrn={setMrn}
+						firstLanguage={firstLanguage}
+						setFirstLanguage={setFirstLanguage}
+						secondLanguage={secondLanguage}
+						setSecondLanguage={setSecondLanguage}
+						ethnicity={ethnicity}
+						setEthnicity={setEthnicity}
+						race={race}
+						setRace={setRace}
+						country={country}
+						setCountry={setCountry}
+					/>
+				</View>
+			</ScrollView>
+		</View>
+	);
 };
 
 // Styles unchanged
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
-  form: {
-    padding: 20,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  saveButton: {
-    color: Colors.lightNavalBlue,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
+	container: {
+		flex: 1,
+		backgroundColor: Colors.white,
+	},
+	form: {
+		padding: 20,
+	},
+	scrollView: {
+		flex: 1,
+	},
+	scrollContent: {
+		paddingBottom: 40,
+	},
+	saveButton: {
+		color: Colors.lightNavalBlue,
+		fontSize: 16,
+		fontWeight: "600",
+	},
+	buttonDisabled: {
+		opacity: 0.5,
+	},
 });
 
 export default EditPatientScreen;
