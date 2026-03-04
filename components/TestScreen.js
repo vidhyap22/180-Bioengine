@@ -16,7 +16,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
+import { useDialog } from "./common/DialogProvider";
 import Colors from "../constants/Colors";
 import HeaderBar from "./common/HeaderBar";
 import { supabase } from "../utils/supabaseClient";
@@ -24,11 +25,14 @@ import EnhancedAudioModule from "../modules/EnhancedAudioModule";
 import { Toast } from "toastify-react-native";
 
 const TestScreen = ({ navigation, route }) => {
-	const { patient } = route.params || {};
+	const { openDialog, closeDialog } = useDialog();
 
-	// Step management
-	const [currentStep, setCurrentStep] = useState(0);
+	const { patient, isUploaded = false, uploadedFile = null } = route.params || {};
+
+	const [currentStep, setCurrentStep] = useState(isUploaded ? 1 : 0);
+
 	const steps = ["Device Setup", "Recording", "Processing", "Review"];
+	const uploadSteps = ["Upload", "Processing", "Review"];
 
 	// Recording state management
 	const [recording, setRecording] = useState(false);
@@ -67,50 +71,52 @@ const TestScreen = ({ navigation, route }) => {
 	const deviceConnectedSubscription = useRef(null);
 	const deviceDisconnectedSubscription = useRef(null);
 	const deviceListChangedSubscription = useRef(null);
+	const startedUploadProcessingRef = useRef(false);
+	useEffect(() => {
+		if (!isUploaded) return;
 
+		const uri = uploadedFile?.uri;
+		if (!uri) return;
+
+		if (startedUploadProcessingRef.current) return;
+		startedUploadProcessingRef.current = true;
+
+		setCurrentStep(1);
+		processUploadedRecordings({ uploadedFile });
+	}, [isUploaded, uploadedFile?.uri]);
 	// Request microphone permissions when component mounts
 	useEffect(() => {
+		if (isUploaded) return;
+
+		let mounted = true;
+
 		(async () => {
-			await requestMicrophonePermission();
+			const ok = await requestMicrophonePermission();
+			if (!mounted || !ok) return;
+
+			await startDeviceScan();
+			await refreshDeviceList();
 		})();
 
-		// Start device scanning
-		startDeviceScan();
-
 		return () => {
-			// Clean up recordings and sounds when component unmounts
-			if (recording) {
-				stopRecording();
-			}
+			mounted = false;
 
-			if (nasalSound) {
-				nasalSound.unloadAsync();
-			}
+			if (recording) stopRecording();
 
-			if (oralSound) {
-				oralSound.unloadAsync();
-			}
+			nasalSound?.unloadAsync?.();
+			oralSound?.unloadAsync?.();
 
-			// Stop device scanning
 			stopDeviceScan();
 
-			// Unsubscribe from device events
-			if (deviceConnectedSubscription.current) {
-				deviceConnectedSubscription.current.remove();
-			}
-
-			if (deviceDisconnectedSubscription.current) {
-				deviceDisconnectedSubscription.current.remove();
-			}
-
-			if (deviceListChangedSubscription.current) {
-				deviceListChangedSubscription.current.remove();
-			}
+			deviceConnectedSubscription.current?.remove?.();
+			deviceDisconnectedSubscription.current?.remove?.();
+			deviceListChangedSubscription.current?.remove?.();
 		};
 	}, []);
 
 	// Setup pulse animation
 	useEffect(() => {
+		if (isUploaded) return;
 		if (recording) {
 			Animated.loop(
 				Animated.sequence([
@@ -137,6 +143,7 @@ const TestScreen = ({ navigation, route }) => {
 
 	// Timer management
 	useEffect(() => {
+		if (isUploaded) return;
 		if (recording) {
 			const interval = setInterval(() => {
 				setTimer((prevTimer) => prevTimer + 1);
@@ -151,7 +158,19 @@ const TestScreen = ({ navigation, route }) => {
 			if (timerInterval) clearInterval(timerInterval);
 		};
 	}, [recording]);
+	const getDurationSecondsFromAudioFile = async (uri) => {
+		try {
+			const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false }, null, false);
+			const status = await sound.getStatusAsync();
+			await sound.unloadAsync();
 
+			const ms = status?.isLoaded ? status.durationMillis : null;
+			return ms ? Math.round(ms / 1000) : 0;
+		} catch (e) {
+			console.warn("Could not read duration from audio:", e?.message);
+			return 0;
+		}
+	};
 	const isEnhancedAudioAvailable = () => {
 		if (!EnhancedAudioModule.isAvailable || !EnhancedAudioModule.isAvailable()) {
 			Toast.warn("Enhanced audio module not available on this device.");
@@ -278,23 +297,28 @@ const TestScreen = ({ navigation, route }) => {
 	const requestMicrophonePermission = async () => {
 		try {
 			const { status } = await Audio.requestPermissionsAsync();
-			setHasPermission(status === "granted");
+			const ok = status === "granted";
+			setHasPermission(ok);
 
-			if (status !== "granted") {
+			if (!ok) {
 				Toast.error("Microphone permission is required.");
-			} else {
-				// Initialize Audio session for recording
-				await Audio.setAudioModeAsync({
-					allowsRecordingIOS: true,
-					playsInSilentModeIOS: true,
-					staysActiveInBackground: true,
-					shouldDuckAndroid: true,
-					playThroughEarpieceAndroid: false,
-				});
+				return false;
 			}
+
+			await Audio.setAudioModeAsync({
+				allowsRecordingIOS: true,
+				playsInSilentModeIOS: true,
+				staysActiveInBackground: true,
+				shouldDuckAndroid: true,
+				playThroughEarpieceAndroid: false,
+			});
+
+			return true;
 		} catch (err) {
 			console.error("Failed to get microphone permission", err);
+			setHasPermission(false);
 			Toast.error("Failed to access microphone.");
+			return false;
 		}
 	};
 
@@ -325,11 +349,7 @@ const TestScreen = ({ navigation, route }) => {
 
 	const moveToRecordingStep = () => {
 		if (!selectedDevice) {
-			Toast.show({
-				type: "error",
-				text1: "No device selected",
-				text2: "Please select an audio input device before proceeding.",
-			});
+			Toast.error("No device selected. Please select an audio input device before proceeding.");
 			return;
 		}
 
@@ -360,10 +380,8 @@ const TestScreen = ({ navigation, route }) => {
 	};
 
 	const startRecording = async () => {
-		if (!hasPermission) {
-			await requestMicrophonePermission();
-			if (!hasPermission) return;
-		}
+		const ok = hasPermission || (await requestMicrophonePermission());
+		if (!ok) return;
 
 		if (!isEnhancedAudioAvailable()) return;
 
@@ -415,7 +433,7 @@ const TestScreen = ({ navigation, route }) => {
 		}
 	};
 
-	const processRecording = async (stereoPath) => {
+	const processRecording = async (stereoPath, durationSeconds = 0) => {
 		if (!isEnhancedAudioAvailable()) return;
 
 		try {
@@ -452,7 +470,7 @@ const TestScreen = ({ navigation, route }) => {
 			console.log(`Calculated nasalance score: ${calculatedScore}`);
 
 			// Store the processed files and score
-			const recordingDuration = stereoRecording ? stereoRecording.duration : timer;
+			const recordingDuration = durationSeconds || timer || 0;
 
 			setNasalRecording({
 				duration: recordingDuration,
@@ -472,7 +490,7 @@ const TestScreen = ({ navigation, route }) => {
 			setProcessingAudio(false);
 
 			// Move to review step
-			setCurrentStep(3);
+			setCurrentStep(isUploaded ? 2 : 3);
 		} catch (error) {
 			console.error("Failed to process recording", error);
 			Toast.error(error?.message ? `Failed to process recording: ${error.message}` : "Failed to process recording.");
@@ -480,7 +498,35 @@ const TestScreen = ({ navigation, route }) => {
 			setProcessingAudio(false);
 		}
 	};
+	const processUploadedRecordings = async ({ uploadedFile }) => {
+		try {
+			setProcessingAudio(true);
 
+			const durationSeconds = await getDurationSecondsFromAudioFile(uploadedFile.uri);
+
+			const timestamp = Date.now();
+			const localStereoPath = `${FileSystem.documentDirectory}stereo_${timestamp}.pcm`;
+
+			await FileSystem.copyAsync({
+				from: uploadedFile.uri,
+				to: localStereoPath,
+			});
+
+			setStereoRecording({
+				duration: durationSeconds,
+				timestamp: new Date().toISOString(),
+				uri: localStereoPath,
+				localPath: localStereoPath,
+			});
+
+			await processRecording(localStereoPath, durationSeconds);
+		} catch (error) {
+			console.error("processUploadedRecordings failed:", error);
+			Toast.error(error?.message ? `Failed: ${error.message}` : "Failed to process upload.");
+		} finally {
+			setProcessingAudio(false);
+		}
+	};
 	const togglePlayNasal = async () => {
 		if (isPlayingNasal) {
 			if (nasalSound) {
@@ -741,9 +787,10 @@ const TestScreen = ({ navigation, route }) => {
 	};
 
 	const renderStepIndicator = () => {
+		const relevantSteps = isUploaded ? uploadSteps : steps;
 		return (
 			<View style={styles.stepIndicator}>
-				{steps.map((step, index) => (
+				{relevantSteps.map((step, index) => (
 					<View key={index} style={styles.stepContainer}>
 						<View style={[styles.stepDot, currentStep === index ? styles.activeDot : null, currentStep > index ? styles.completedDot : null]}>
 							{currentStep > index ? (
@@ -758,7 +805,6 @@ const TestScreen = ({ navigation, route }) => {
 			</View>
 		);
 	};
-
 	const renderDeviceItem = ({ item }) => {
 		const isSelected = selectedDevice && selectedDevice.id === item.id;
 
@@ -935,10 +981,12 @@ const TestScreen = ({ navigation, route }) => {
 				</View>
 
 				{/* Device info */}
-				<View style={styles.reviewDeviceInfo}>
-					<Text style={styles.reviewDeviceTitle}>Recording Device</Text>
-					<Text style={styles.reviewDeviceName}>{selectedDevice?.name || "Unknown Device"}</Text>
-				</View>
+				{!isUploaded && (
+					<View style={styles.reviewDeviceInfo}>
+						<Text style={styles.reviewDeviceTitle}>Recording Device</Text>
+						<Text style={styles.reviewDeviceName}>{selectedDevice?.name || "Unknown Device"}</Text>
+					</View>
+				)}
 
 				{/* Show warning if MRN is missing */}
 				{!isMrnValid && (
@@ -996,17 +1044,28 @@ const TestScreen = ({ navigation, route }) => {
 	};
 
 	const renderCurrentStep = () => {
-		switch (currentStep) {
-			case 0:
-				return renderDeviceSelection();
-			case 1:
-				return renderStereoRecording();
-			case 2:
-				return renderProcessing();
-			case 3:
-				return renderReview();
-			default:
-				return null;
+		if (!isUploaded) {
+			switch (currentStep) {
+				case 0:
+					return renderDeviceSelection();
+				case 1:
+					return renderStereoRecording();
+				case 2:
+					return renderProcessing();
+				case 3:
+					return renderReview();
+				default:
+					return null;
+			}
+		} else {
+			switch (currentStep) {
+				case 1:
+					return renderProcessing();
+				case 2:
+					return renderReview();
+				default:
+					return null;
+			}
 		}
 	};
 

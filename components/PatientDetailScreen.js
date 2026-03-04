@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput, Dimensions } from "react-native";
+import { Modal, Platform, View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput, Dimensions } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import Colors from "../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,7 +11,9 @@ import HeaderBar from "./common/HeaderBar";
 import PatientCard from "./common/PatientCard";
 import LoadingIndicator from "./common/LoadingIndicator";
 import Button from "./common/Button";
-
+import * as DocumentPicker from "expo-document-picker";
+import { useDialog } from "./common/DialogProvider";
+import { Toast } from "toastify-react-native";
 const PatientDetailScreen = ({ route, navigation }) => {
 	const [patientData, setPatientData] = useState(route.params.patient);
 	const [testHistory, setTestHistory] = useState([]);
@@ -22,6 +24,76 @@ const PatientDetailScreen = ({ route, navigation }) => {
 	const [notesChanged, setNotesChanged] = useState(false);
 	const [chartData, setChartData] = useState(null);
 	const [isDownloading, setIsDownloading] = useState(false);
+	const [showUploadRecordingModal, setShowUploadRecordingModal] = useState(false);
+	const [uploadedFile, setUploadedFile] = useState(null);
+	const [uploadingRecordings, setUploadingRecordings] = useState(false);
+
+	const { openDialog, closeDialog } = useDialog();
+
+	const uploadWAV = async () => {
+		const res = await DocumentPicker.getDocumentAsync({
+			type: ["audio/wav", "audio/x-wav", "audio/wave"],
+			copyToCacheDirectory: true,
+			multiple: false,
+		});
+
+		if (res.canceled) return null;
+
+		const file = res.assets?.[0] ?? res;
+
+		const checkWAV =
+			file.mimeType === "audio/wav" ||
+			file.mimeType === "audio/x-wav" ||
+			file.mimeType === "audio/wave" ||
+			(file.name && file.name.toLowerCase().endsWith(".wav"));
+
+		if (!checkWAV) return null;
+
+		console.log("Successfully uploaded WAV file");
+		return file;
+	};
+
+	const closeUploadRecordingModal = () => {
+		setShowUploadRecordingModal(false);
+		setUploadedFile(null);
+	};
+
+	const selectRecording = async () => {
+		try {
+			const file = await uploadWAV();
+			if (!file) {
+				Toast.error("Please select an .wav file.");
+				return;
+			}
+			setUploadedFile(file);
+		} catch (e) {
+			Toast.error(`Error occurred while uploading file: ${e?.message ?? e}`);
+		}
+	};
+
+	const handleUploadRecording = async () => {
+		if (!uploadedFile) {
+			Toast.error("Please upload your recording.");
+			closeUploadRecordingModal();
+			return;
+		}
+
+		try {
+			setUploadingRecordings(true);
+
+			navigation.navigate("Test", {
+				patient: patientData,
+				isUploaded: true,
+				uploadedFile: uploadedFile,
+			});
+			closeUploadRecordingModal();
+		} catch (e) {
+			Toast.error(`Upload failed: ${e?.message ?? e}`);
+			closeUploadRecordingModal();
+		} finally {
+			setUploadingRecordings(false);
+		}
+	};
 
 	// Helper function to convert array to CSV string
 	const arrayToCSV = (data) => {
@@ -425,6 +497,7 @@ const PatientDetailScreen = ({ route, navigation }) => {
 			patient: patientData,
 			nasalMic: mockNasalMic,
 			oralMic: mockOralMic,
+			isUploaded: false,
 		});
 	};
 
@@ -519,8 +592,62 @@ const PatientDetailScreen = ({ route, navigation }) => {
 					/>
 				</View>
 			</ScrollView>
+			<View style={styles.buttonContainer}>
+				<Button title="Upload Recording" icon="add" onPress={() => setShowUploadRecordingModal(true)} style={styles.addButton} size="large" />
+				<Button title="New Test" icon="add" onPress={startNewTest} style={styles.addButton} size="large" />
+			</View>
 
-			<Button title="New Test" icon="add" onPress={startNewTest} style={styles.addButton} size="large" />
+			<Modal visible={showUploadRecordingModal} animationType="slide" transparent={true} onRequestClose={closeUploadRecordingModal}>
+				<View style={styles.modalContainer}>
+					<View style={styles.modalContent}>
+						<View style={styles.modalHeader}>
+							<Text style={styles.modalTitle}>Upload Recording</Text>
+							<TouchableOpacity style={styles.modalCloseButton} onPress={closeUploadRecordingModal} disabled={uploadingRecordings}>
+								<Ionicons name="close" size={24} color="#666" />
+							</TouchableOpacity>
+						</View>
+						{/* Upload Recording */}
+						<View style={styles.uploadField}>
+							<Text style={styles.uploadLabel}>Select Recording (.wav)</Text>
+							<View style={styles.uploadRow}>
+								<TouchableOpacity style={styles.uploadBox} onPress={selectRecording} disabled={uploadingRecordings}>
+									<Ionicons name="cloud-upload-outline" size={18} color={Colors.lightNavalBlue} />
+								</TouchableOpacity>
+
+								{uploadedFile ? (
+									<View style={styles.fileMetaRow}>
+										<Text style={styles.fileName} numberOfLines={1}>
+											{uploadedFile.name}
+										</Text>
+
+										<TouchableOpacity style={styles.clearBtn} onPress={() => setUploadedFile(null)} disabled={uploadingRecordings}>
+											<Ionicons name="close-circle" size={20} color="#999" />
+										</TouchableOpacity>
+									</View>
+								) : null}
+							</View>
+						</View>
+
+						{/* Buttons */}
+						<View style={styles.modalFooter}>
+							<Button
+								title="Cancel"
+								variant="secondary"
+								onPress={closeUploadRecordingModal}
+								disabled={uploadingRecordings}
+								style={{ flex: 1, marginRight: 8 }}
+							/>
+							<Button
+								title={uploadingRecordings ? "Uploading..." : "Upload"}
+								variant="primary"
+								onPress={handleUploadRecording}
+								disabled={uploadingRecordings}
+								style={{ flex: 1, marginLeft: 8 }}
+							/>
+						</View>
+					</View>
+				</View>
+			</Modal>
 		</View>
 	);
 };
@@ -675,11 +802,11 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		marginTop: 5,
 	},
-	addButton: {
-		position: "absolute",
-		right: 20,
-		bottom: 20,
-	},
+	// addButton: {
+	// 	position: "absolute",
+	// 	right: 20,
+	// 	bottom: 20,
+	// },
 	notesInput: {
 		borderWidth: 1,
 		borderColor: "#eee",
@@ -716,6 +843,62 @@ const styles = StyleSheet.create({
 		flex: 3,
 		fontSize: 14,
 		color: Colors.lightNavalBlue,
+	},
+	buttonContainer: {
+		alignSelf: "center",
+		display: "flex",
+		flexDirection: "row",
+		position: "absolute",
+		bottom: 20,
+		gap: 8,
+	},
+	modalContainer: {
+		flex: 1,
+		backgroundColor: "rgba(0, 0, 0, 0.5)",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	modalContent: {
+		width: "90%",
+		maxHeight: "80%",
+		backgroundColor: "#fff",
+		borderRadius: 12,
+		overflow: "hidden",
+		padding: 20,
+	},
+	modalHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		padding: 16,
+		borderBottomWidth: 1,
+		borderBottomColor: "#e9ecef",
+	},
+	modalTitle: {
+		fontSize: 18,
+		fontWeight: "bold",
+		color: Colors.lightNavalBlue,
+	},
+	modalCloseButton: {
+		padding: 6,
+	},
+	modalFooter: {
+		flexDirection: "row",
+	},
+	uploadField: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 20,
+	},
+	uploadLabel: {
+		fontSize: 18,
+		fontWeight: "500",
+		color: Colors.black,
+		padding: 10,
+	},
+	uploadRow: { flexDirection: "row", gap: 5 },
+	fileMetaRow: {
+		flexDirection: "row",
 	},
 });
 
