@@ -358,7 +358,7 @@ nasomEATR/
 - **Storage**: Expo FileSystem, AsyncStorage
 - **Bluetooth Integration**: React Native Bluetooth Classic
 
-## 👥 Team
+## 👥 1st Team
 
 | Name | Role | Email |
 | ---- | ---- | ----- |
@@ -368,6 +368,16 @@ nasomEATR/
 | Vaani Mathur | Team Member | vaanim@uci.edu |
 | John Norombaba | Team Member | jnoromba@uci.edu |
 | Shayla My Tien Ho | Team Member | shaylamh@uci.edu |
+
+## 👥 2nd Team
+
+| Name | Role | Email |
+| ---- | ---- | ----- |
+| Priya Deshmukh | Team Lead | priyasd@uci.edu |
+| Mohammadaeshya Salehibakhs | Team Member | msalehib@uci.edu |
+| Jakob Groh | Team Member | jpgroh@uci.edu | 
+| Vidyha Pillai | Team Member | vapillai@uci.edu | 
+| Vahir Vazquez | Team Member | yahirv@uci.edu | 
 
 ## 🤝 Contributing
 
