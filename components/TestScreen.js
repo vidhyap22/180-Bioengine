@@ -22,6 +22,7 @@ import Colors from "../constants/Colors";
 import HeaderBar from "./common/HeaderBar";
 import { supabase } from "../utils/supabaseClient";
 import EnhancedAudioModule from "../modules/EnhancedAudioModule";
+import { checkTestStructure, getTestStereoPath, getTestNasalPath, getTestOralPath } from "../utils/StorageUtils";
 import { Toast } from "toastify-react-native";
 
 const TestScreen = ({ navigation, route }) => {
@@ -40,6 +41,7 @@ const TestScreen = ({ navigation, route }) => {
 	const [timerInterval, setTimerInterval] = useState(null);
 
 	// Audio data storage
+	const [currentTestId, setCurrentTestId] = useState(null);
 	const [stereoRecording, setStereoRecording] = useState(null);
 	const [nasalRecording, setNasalRecording] = useState(null);
 	const [oralRecording, setOralRecording] = useState(null);
@@ -389,8 +391,16 @@ const TestScreen = ({ navigation, route }) => {
 			setTimer(0);
 
 			const timestamp = Date.now();
-			const fileName = `stereo_recording_${timestamp}.pcm`;
-			const filePath = `${FileSystem.documentDirectory}${fileName}`;
+			// const fileName = `stereo_recording_${timestamp}.pcm`;
+			// const filePath = `${FileSystem.documentDirectory}${fileName}`;
+
+			// Create file path from patient + time info
+			const patientId = patient?.mrn;
+			const testId = Date.now().toString();
+
+			setCurrentTestId(testId);
+			await checkTestStructure(patientId, testId);
+			const filePath = getTestStereoPath(patientId, testId);
 
 			console.log("Starting recording to path:", filePath);
 
@@ -440,11 +450,14 @@ const TestScreen = ({ navigation, route }) => {
 			setProcessingAudio(true);
 
 			const timestamp = Date.now();
-			const nasalFileName = `nasal_${timestamp}.pcm`;
-			const oralFileName = `oral_${timestamp}.pcm`;
+			// const nasalFileName = `nasal_${timestamp}.pcm`;
+			// const oralFileName = `oral_${timestamp}.pcm`;
 
-			const nasalPath = `${FileSystem.documentDirectory}${nasalFileName}`;
-			const oralPath = `${FileSystem.documentDirectory}${oralFileName}`;
+			const patientId = patient?.mrn;
+			const testId = currentTestId;
+
+			const nasalPath = getTestNasalPath(patientId, testId);
+			const oralPath = getTestOralPath(patientId, testId);
 
 			console.log(`Processing stereo recording: ${stereoPath}`);
 			console.log(`Target paths - Nasal: ${nasalPath}, Oral: ${oralPath}`);
@@ -501,11 +514,13 @@ const TestScreen = ({ navigation, route }) => {
 	const processUploadedRecordings = async ({ uploadedFile }) => {
 		try {
 			setProcessingAudio(true);
+			const patientId = patient?.mrn;
+			const testId = Date.now().toString();
+			setCurrentTestId(testId);
+			const localStereoPath = getTestStereoPath(patientId, testId);
 
+			await checkTestStructure(patientId, testId);
 			const durationSeconds = await getDurationSecondsFromAudioFile(uploadedFile.uri);
-
-			const timestamp = Date.now();
-			const localStereoPath = `${FileSystem.documentDirectory}stereo_${timestamp}.pcm`;
 
 			await FileSystem.copyAsync({
 				from: uploadedFile.uri,
@@ -753,28 +768,28 @@ const TestScreen = ({ navigation, route }) => {
 
 			console.log("Test results saved successfully", data);
 
-			// Now that everything is saved, delete the local files
-			try {
-				// Delete nasal recording
-				if (nasalLocalPath && nasalLocalPath.startsWith(FileSystem.documentDirectory)) {
-					await FileSystem.deleteAsync(nasalLocalPath, { idempotent: true });
-					console.log("Deleted nasal recording file");
-				}
+			// No longer deleting local files
+			// try {
+			// 	// Delete nasal recording
+			// 	if (nasalLocalPath && nasalLocalPath.startsWith(FileSystem.documentDirectory)) {
+			// 		await FileSystem.deleteAsync(nasalLocalPath, { idempotent: true });
+			// 		console.log("Deleted nasal recording file");
+			// 	}
 
-				// Delete oral recording
-				if (oralLocalPath && oralLocalPath.startsWith(FileSystem.documentDirectory)) {
-					await FileSystem.deleteAsync(oralLocalPath, { idempotent: true });
-					console.log("Deleted oral recording file");
-				}
+			// 	// Delete oral recording
+			// 	if (oralLocalPath && oralLocalPath.startsWith(FileSystem.documentDirectory)) {
+			// 		await FileSystem.deleteAsync(oralLocalPath, { idempotent: true });
+			// 		console.log("Deleted oral recording file");
+			// 	}
 
-				// Delete stereo recording
-				if (stereoRecording && stereoRecording.localPath && stereoRecording.localPath.startsWith(FileSystem.documentDirectory)) {
-					await FileSystem.deleteAsync(stereoRecording.localPath, { idempotent: true });
-					console.log("Deleted stereo recording file");
-				}
-			} catch (deleteError) {
-				console.warn("Error deleting local files:", deleteError);
-			}
+			// 	// Delete stereo recording
+			// 	if (stereoRecording && stereoRecording.localPath && stereoRecording.localPath.startsWith(FileSystem.documentDirectory)) {
+			// 		await FileSystem.deleteAsync(stereoRecording.localPath, { idempotent: true });
+			// 		console.log("Deleted stereo recording file");
+			// 	}
+			// } catch (deleteError) {
+			// 	console.warn("Error deleting local files:", deleteError);
+			// }
 
 			Toast.success("Saved test results and audio recordings.");
 			navigation.navigate("PatientDetail", { patient });
