@@ -104,6 +104,10 @@ def process_audio(input_file, patient_id):
     oral_rms = calculate_rms(oral_wav)
     oral_waveform = calculate_waveform(oral_wav)
 
+    oral_pressure = calculate_pressure()
+    nasal_pressure = calculate_pressure()
+
+
     # Calculate Nasalance Score
 
     if nasal_rms + oral_rms > 0:
@@ -130,16 +134,16 @@ def process_audio(input_file, patient_id):
             "nasal_device": "External (icspeech)",
             "oral_device": "External (icspeech)",
             "source_file": base_name
-        }
+        },
         #need function for this
         "waveform_data" : {
             "nasal_waveform" : nasal_waveform,
             "oral_waveform" : oral_waveform
-        }
+        },
         #need funciton for this
         "pressure_data" : {
-            "oral_pressure_avg_kpa" : ,
-            "nasal_pressure_avg_kpa" :
+            "oral_pressure_avg_kpa" : oral_pressure,
+            "nasal_pressure_avg_kpa" nasal_pressure:
         }
     }
 
