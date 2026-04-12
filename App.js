@@ -18,9 +18,18 @@ import { PaperProvider } from "react-native-paper";
 import ToastManager from "toastify-react-native";
 import EditProfileScreen from "./components/EditProfileScreen";
 
+import { initDb } from "./database/database";
+
+
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+    useEffect(() => {
+        initDb();
+    }, []);
+
+
 	return (
 		<SafeAreaProvider>
 			<PaperProvider>

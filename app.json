@@ -57,7 +57,8 @@
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "extra": {
       "eas": {
