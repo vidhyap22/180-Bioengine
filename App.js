@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { StatusBar } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -18,16 +18,20 @@ import { PaperProvider } from "react-native-paper";
 import ToastManager from "toastify-react-native";
 import EditProfileScreen from "./components/EditProfileScreen";
 
-import { initDb } from "./database/database";
+import { initDb } from "./nasomeater_storage/database/database"; //changed from "./database/database"
 
 
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+    const [dbReady, setDbReady] = useState(false);
+
     useEffect(() => {
-        initDb();
+        initDb().then(() => setDbReady(true)).catch(console.error);
     }, []);
+
+    if (!dbReady) return null;
 
 
 	return (
