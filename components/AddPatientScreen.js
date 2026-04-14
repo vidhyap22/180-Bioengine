@@ -3,9 +3,12 @@ import { View, StyleSheet, ScrollView, Text, Alert } from "react-native";
 import Colors from "../constants/Colors";
 import HeaderBar from "./common/HeaderBar";
 import PatientFormFields from "./common/PatientFormFields";
-import { supabase } from "../utils/supabaseClient";
+//import { supabase } from "../utils/supabaseClient"; //supabase REF TOBE REMOVED
+import { getDb } from "../nasomeater_storage/database/database";
 import Button from "./common/Button";
 import { Toast } from "toastify-react-native";
+
+//NOTE: error check exisiting mrn so we prevent dupes mrn numbers 
 
 const AddPatientScreen = ({ navigation }) => {
 	const [name, setName] = useState("");
@@ -64,28 +67,25 @@ const AddPatientScreen = ({ navigation }) => {
 		try {
 			setLoading(true);
 
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (!user) throw new Error("No user logged in");
-
-			const { error: insertError } = await supabase.from("patient").insert([
-				{
-					mrn: parseInt(mrn),
-					full_name: name,
-					dob: `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`,
-					gender: gender,
-					assigned_clinician: user.id,
-					picture_url: null, // No image upload
-					first_language: firstLanguage || null,
-					second_language: secondLanguage || null,
-					ethnicity: ethnicity || null,
-					race: race || null,
-					country: country || null,
-				},
-			]);
-
-			if (insertError) throw insertError;
+			const db = getDb();
+			await db.runAsync(
+				`INSERT INTO patient(
+					mrn, full_name, dob, gender, picture_url,
+					first_language, second_language, ethnicity, race, country
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				[
+					parseInt(mrn),
+					name,
+					`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`,
+					gender,
+					null,
+					firstLanguage || null,
+					secondLanguage || null,
+					ethnicity || null,
+					race || null,
+					country || null,
+				]
+			);
 
 			Toast.success("Patient added successfully");
 			setTimeout(() => navigation.goBack(), 600);
