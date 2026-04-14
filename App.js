@@ -48,7 +48,7 @@ export default function App() {
 							<Stack.Screen name="AddPatient" component={AddPatientScreen} />
 							<Stack.Screen name="PatientDetail" component={PatientDetailScreen} />
 							<Stack.Screen name="EditPatient" component={EditPatientScreen} />
-							//<Stack.Screen name="EditProfile" component={EditProfileScreen} />
+							{/* <Stack.Screen name="EditProfile" component={EditProfileScreen} /> */}
 							<Stack.Screen name="Test" component={TestScreen} />
 							<Stack.Screen name="TestDetail" component={TestDetailScreen} />
 							<Stack.Screen name="MediaPlayer" component={MediaPlayer} />
