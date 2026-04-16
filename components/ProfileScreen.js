@@ -2,46 +2,26 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../constants/Colors";
-import { supabase } from "../utils/supabaseClient";
 import SettingsItem from "./common/SettingsItem";
 import LoadingIndicator from "./common/LoadingIndicator";
 import Button from "./common/Button";
 import { Toast } from "toastify-react-native";
 
 const ProfileScreen = ({ navigation }) => {
-	const [userData, setUserData] = useState(null);
-	const [loading, setLoading] = useState(true);
+	const [userData, setUserData] = useState({ full_name: "Local User", email: "local@example.com" });
+	const [loading, setLoading] = useState(false);
 
 	useEffect(() => {
 		fetchUserData();
 	}, []);
 
 	const fetchUserData = async () => {
-		try {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (!user) throw new Error("No user logged in");
-
-			const { data, error } = await supabase.from("clinician").select("*").eq("id", user.id).single();
-
-			if (error) throw error;
-			setUserData(data);
-		} catch (error) {
-			console.error("Error fetching user data:", error);
-		} finally {
-			setLoading(false);
-		}
+		// No cloud fetch in local mode
+		setLoading(false);
 	};
 
 	const handleSignOut = async () => {
-		try {
-			const { error } = await supabase.auth.signOut();
-			if (error) throw error;
-			navigation.replace("Login");
-		} catch (error) {
-			Toast.error(error?.message || "Error signing out");
-		}
+		Toast.info("Sign out disabled in local mode");
 	};
 
 	const settingsSections = [

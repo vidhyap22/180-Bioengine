@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, Text, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../constants/Colors";
-import { supabase } from "../utils/supabaseClient";
+import { getPatientsWithStats } from "../nasomeater_storage/database/database";
 import HeaderBar from "./common/HeaderBar";
 import PatientCard from "./common/PatientCard";
 import LoadingIndicator from "./common/LoadingIndicator";
@@ -28,50 +28,18 @@ const PatientListScreen = ({ navigation }) => {
 
 	const fetchPatients = async () => {
 		try {
-			// Get current user's ID
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-
-			if (!user) throw new Error("No user logged in");
-
-			const { data, error } = await supabase
-				.from("patient")
-				.select(
-					`
-          mrn,
-          full_name,
-          dob,
-          created_at,
-          gender,
-          picture_url,
-          notes,
-          first_language,
-          second_language,
-          ethnicity,
-          race,
-          country,
-          patient_data(
-            created_at
-          )
-        `,
-				)
-				.eq("assigned_clinician", user.id)
-				.order("created_at", { ascending: false });
-
-			if (error) throw error;
+			const data = await getPatientsWithStats();
 
 			const processedPatients = data.map((patient) => ({
 				mrn: patient.mrn,
 				name: patient.full_name,
-				full_name: patient.full_name, // Add this to ensure compatibility
-				testsCount: patient.patient_data?.length || 0,
-				lastTestDate: patient.patient_data?.[0]?.created_at || null,
+				full_name: patient.full_name,
+				testsCount: patient.testsCount || 0,
+				lastTestDate: patient.lastTestDate || null,
 				dob: patient.dob,
 				gender: patient.gender,
 				picture_url: patient.picture_url,
 				notes: patient.notes,
-				// Add the new demographic fields
 				first_language: patient.first_language,
 				second_language: patient.second_language,
 				ethnicity: patient.ethnicity,

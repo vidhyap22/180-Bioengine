@@ -20,7 +20,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { useDialog } from "./common/DialogProvider";
 import Colors from "../constants/Colors";
 import HeaderBar from "./common/HeaderBar";
-import { supabase } from "../utils/supabaseClient";
+import { getDb } from "../nasomeater_storage/database/database";
 import EnhancedAudioModule from "../modules/EnhancedAudioModule";
 import { checkTestStructure, getTestStereoPath, getTestNasalPath, getTestOralPath } from "../utils/StorageUtils";
 import { Toast } from "toastify-react-native";
@@ -611,59 +611,9 @@ const TestScreen = ({ navigation, route }) => {
 	};
 
 	const uploadAudioToStorage = async (uri, fileName) => {
-		try {
-			console.log(`Starting upload for ${fileName} from ${uri}`);
-
-			// Ensure we're using an internal URI that we have permission to read
-			let fileUri = uri;
-			if (!uri.startsWith(FileSystem.documentDirectory) && !uri.startsWith("file:///data/")) {
-				console.log("URI is not from app storage, attempting to create a local copy...");
-				fileUri = `${FileSystem.documentDirectory}temp_${fileName}`;
-				await FileSystem.copyAsync({
-					from: uri,
-					to: fileUri,
-				});
-				console.log(`Created local copy at: ${fileUri}`);
-			}
-
-			// Now read from our accessible path
-			const fileBase64 = await FileSystem.readAsStringAsync(fileUri, {
-				encoding: FileSystem.EncodingType.Base64,
-			});
-
-			if (!fileBase64) {
-				throw new Error("Failed to read audio file");
-			}
-
-			console.log(`File read successfully: ${fileName}, length: ${fileBase64.length}`);
-
-			// Clean up temp file if we created one
-			if (fileUri !== uri) {
-				await FileSystem.deleteAsync(fileUri, { idempotent: true });
-			}
-
-			const { data, error } = await supabase.storage.from("patients_audio").upload(fileName, fileBase64, {
-				contentType: "audio/mpeg",
-				upsert: true,
-			});
-
-			if (error) throw error;
-
-			console.log(`Upload successful for ${fileName}`);
-
-			const { data: publicURLData } = supabase.storage.from("patients_audio").getPublicUrl(fileName);
-
-			if (!publicURLData?.publicUrl) {
-				throw new Error("Failed to get public URL");
-			}
-
-			console.log(`Public URL generated: ${publicURLData.publicUrl}`);
-
-			return publicURLData.publicUrl;
-		} catch (err) {
-			console.error(`Error uploading audio file ${fileName}:`, err);
-			throw err;
-		}
+		// No longer uploading to cloud storage. 
+		// We return the local URI which is already stored on the device.
+		return uri;
 	};
 
 	const saveTestResults = async () => {
@@ -686,62 +636,15 @@ const TestScreen = ({ navigation, route }) => {
 
 			console.log("Starting uploads to Supabase...");
 
-			let nasalAudioUrl, oralAudioUrl;
-			let nasalLocalPath = nasalRecording.localPath;
-			let oralLocalPath = oralRecording.localPath;
-
-			const uploadWithRetry = async (uri, fileName, attempt = 1, maxAttempts = 3) => {
-				try {
-					return await uploadAudioToStorage(uri, fileName);
-				} catch (error) {
-					if (attempt < maxAttempts) {
-						const delay = Math.pow(2, attempt) * 1000;
-						console.log(`Upload failed. Retrying in ${delay / 1000}s (${attempt}/${maxAttempts - 1})...`);
-						await new Promise((resolve) => setTimeout(resolve, delay));
-						return uploadWithRetry(uri, fileName, attempt + 1, maxAttempts);
-					}
-					throw error;
-				}
-			};
-
-			// First upload nasal recording
-			try {
-				console.log("Uploading nasal recording...");
-				const sourceUri = nasalLocalPath || nasalRecording.uri;
-				nasalAudioUrl = await uploadWithRetry(sourceUri, nasalFileName);
-				console.log("Nasal recording uploaded successfully");
-			} catch (uploadError) {
-				console.error("Failed to upload nasal recording:", uploadError);
-				throw new Error(`Failed to upload nasal recording: ${uploadError.message}`);
-			}
-
-			// Then upload oral recording
-			try {
-				console.log("Uploading oral recording...");
-				const sourceUri = oralLocalPath || oralRecording.uri;
-				oralAudioUrl = await uploadWithRetry(sourceUri, oralFileName);
-				console.log("Oral recording uploaded successfully");
-			} catch (uploadError) {
-				console.error("Failed to upload oral recording:", uploadError);
-				throw new Error(`Failed to upload oral recording: ${uploadError.message}`);
-			}
-
 			// Use the actual calculated nasalance score
 			const calculatedNasalanceScore = Math.round(nasalanceScore);
-
-			// Generate a unique ID
-			const randomPart = Math.floor(Math.random() * 1000000)
-				.toString()
-				.padStart(6, "0");
-			const testDataId = parseInt(`${timestamp}${randomPart}`.substring(0, 10));
-			console.log(`Generated test ID: ${testDataId}`);
 
 			const testData = {
 				mrn: patient?.mrn,
 				created_at: testDate,
 				avg_nasalance_score: calculatedNasalanceScore,
-				nasal_audio: nasalAudioUrl,
-				oral_audio: oralAudioUrl,
+				nasal_audio: nasalLocalPath || nasalRecording.uri,
+				oral_audio: oralLocalPath || oralRecording.uri,
 				nasalance_data: JSON.stringify({
 					score: calculatedNasalanceScore,
 					nasal_device: selectedDevice?.name || "Internal Microphone",
@@ -751,20 +654,22 @@ const TestScreen = ({ navigation, route }) => {
 				}),
 			};
 
-			console.log("Saving test data to database...");
+			console.log("Saving test data to local database...");
 
-			const { data, error } = await supabase.from("patient_data").insert(testData).select(); // Get the inserted record with auto-generated ID
-
-			if (error) {
-				console.error("Database insert error:", error);
-
-				// Handle specific database errors
-				if (error.code === "23505") {
-					throw new Error("Unable to save test: duplicate record. Please try again.");
-				} else {
-					throw error;
-				}
-			}
+			const db = getDb();
+			await db.runAsync(
+				`INSERT INTO patient_data (
+					mrn, created_at, avg_nasalance_score, nasal_audio, oral_audio, nasalance_data
+				) VALUES (?, ?, ?, ?, ?, ?)`,
+				[
+					testData.mrn,
+					testData.created_at,
+					testData.avg_nasalance_score,
+					testData.nasal_audio,
+					testData.oral_audio,
+					testData.nasalance_data
+				]
+			);
 
 			console.log("Test results saved successfully", data);
 

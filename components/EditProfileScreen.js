@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from "react-native";
 import Colors from "../constants/Colors";
-import { supabase } from "../utils/supabaseClient";
 import HeaderBar from "./common/HeaderBar";
 import LoadingIndicator from "./common/LoadingIndicator";
 
@@ -24,34 +23,14 @@ const EditProfileScreen = ({ route, navigation }) => {
 	const [loading, setLoading] = useState(false);
 
 	const handleSave = async () => {
-		if (!fullName.trim()) {
-			Alert.alert("Error", "Full name is required");
-			return;
-		}
-		if (!username.trim()) {
-			Alert.alert("Error", "Username is required");
+		if (!fullName.trim() || !username.trim()) {
+			Alert.alert("Error", "All fields are required");
 			return;
 		}
 
 		try {
-			setLoading(true);
-
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (!user) throw new Error("No user logged in");
-
-			const { error } = await supabase
-				.from("clinician")
-				.update({
-					full_name: fullName.trim(),
-					username: username.trim(),
-				})
-				.eq("id", user.id);
-
-			if (error) throw error;
-
-			Alert.alert("Success", "Profile updated successfully", [{ text: "OK", onPress: () => navigation.goBack() }]);
+			// In local mode, we don't sync this to a server
+			Alert.alert("Local Mode", "Profile changes are currently local and won't be saved to a server.", [{ text: "OK", onPress: () => navigation.goBack() }]);
 		} catch (error) {
 			Alert.alert("Error", error.message);
 		} finally {

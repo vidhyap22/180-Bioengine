@@ -6,7 +6,7 @@ import { Modal, Platform, View, Text, StyleSheet, ScrollView, Image, TouchableOp
 import { LineChart } from "react-native-chart-kit";
 import Colors from "../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "../utils/supabaseClient";
+import { getDb, getPatientTests } from "../nasomeater_storage/database/database";
 import HeaderBar from "./common/HeaderBar";
 import PatientCard from "./common/PatientCard";
 import LoadingIndicator from "./common/LoadingIndicator";
@@ -105,9 +105,11 @@ const PatientDetailScreen = ({ route, navigation }) => {
 			setIsDownloading(true);
 
 			// Fetch all test data for this patient
-			const { data, error } = await supabase.from("patient_data").select("*").eq("mrn", patientData.mrn).order("created_at", { ascending: true });
-
-			if (error) throw error;
+			const db = getDb();
+			const data = await db.getAllAsync(
+				"SELECT * FROM patient_data WHERE mrn = ? ORDER BY created_at ASC",
+				[patientData.mrn]
+			);
 
 			// Create CSV data array
 			const csvData = [["#", "Date Test was administered", "Average Nasalance"]];
@@ -162,16 +164,14 @@ const PatientDetailScreen = ({ route, navigation }) => {
 
 	const fetchTestHistory = async () => {
 		try {
-			const { data, error } = await supabase.from("patient_data").select("*").eq("mrn", patientData.mrn).order("created_at", { ascending: false });
-
-			if (error) throw error;
+			const data = await getPatientTests(patientData.mrn);
 
 			if (data && data.length > 0) {
 				const totalNasalance = data.reduce((sum, test) => sum + (test.avg_nasalance_score || 0), 0);
 				const avg = (totalNasalance / data.length).toFixed(1);
 				setAverageNasalance(avg);
 
-				prepareChartData(data.reverse());
+				prepareChartData([...data].reverse());
 			}
 
 			setTestHistory(data || []);
@@ -215,9 +215,12 @@ const PatientDetailScreen = ({ route, navigation }) => {
 
 		try {
 			setSavingNotes(true);
-			const { error } = await supabase.from("patient").update({ notes: notes }).eq("mrn", patientData.mrn);
+			const db = getDb();
+			await db.runAsync(
+				"UPDATE patient SET notes = ? WHERE mrn = ?",
+				[notes, patientData.mrn]
+			);
 
-			if (error) throw error;
 			setNotesChanged(false);
 		} catch (error) {
 			console.error("Error saving notes:", error);
@@ -349,14 +352,13 @@ const PatientDetailScreen = ({ route, navigation }) => {
 	};
 	const deletePatient = async () => {
 		try {
-			if (patientData.picture_url) {
-				const fileName = patientData.picture_url.split("/").pop();
-				await supabase.storage.from("patient_photos").remove([fileName]);
-			}
-
-			const { error } = await supabase.from("patient").delete().eq("mrn", patientData.mrn);
-
-			if (error) throw error;
+			const db = getDb();
+			
+			// Delete patient data first (cascading if foreign key set, but explicit is safer)
+			await db.runAsync("DELETE FROM patient_data WHERE mrn = ?", [patientData.mrn]);
+			
+			// Delete the patient
+			await db.runAsync("DELETE FROM patient WHERE mrn = ?", [patientData.mrn]);
 
 			Toast.success("Patient deleted successfully");
 			setTimeout(() => navigation.goBack(), 600);
@@ -376,9 +378,9 @@ const PatientDetailScreen = ({ route, navigation }) => {
 
 	const refreshPatientData = async () => {
 		try {
-			const { data, error } = await supabase.from("patient").select("*").eq("mrn", patientData.mrn).single();
+			const db = getDb();
+			const data = await db.getFirstAsync("SELECT * FROM patient WHERE mrn = ?", [patientData.mrn]);
 
-			if (error) throw error;
 			if (data) {
 				setPatientData(data);
 				setNotes(data.notes || "");

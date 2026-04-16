@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../constants/Colors";
-import { supabase } from "../utils/supabaseClient";
 import { Toast } from "toastify-react-native";
 
 const DashboardOption = ({ title, subtitle, icon, onPress }) => (
@@ -18,16 +17,6 @@ const DashboardOption = ({ title, subtitle, icon, onPress }) => (
 );
 
 const DashboardPage = ({ navigation }) => {
-	const handleSignOut = async () => {
-		try {
-			const { error } = await supabase.auth.signOut();
-			if (error) throw error;
-			navigation.replace("Login");
-		} catch (error) {
-			Toast.error(`Error signing out ${error.message}`);
-		}
-	};
-
 	const options = [
 		{
 			title: "Start an Evaluation",
