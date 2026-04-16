@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
 import { Modal, Platform, View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput, Dimensions } from "react-native";
@@ -96,12 +96,11 @@ const PatientDetailScreen = ({ route, navigation }) => {
 		try {
 			setIsDownloading(true);
 
-			// Fetch all test data for this patient
-			const db = getDb();
-			const data = await db.getAllAsync(
-				"SELECT * FROM patient_data WHERE mrn = ? ORDER BY created_at ASC",
-				[patientData.mrn]
-			);
+			const data = testHistory;
+			if (!data || data.length === 0) {
+				Toast.error("No test history available to export.");
+				return;
+			}
 
 			// Create CSV data array with Patient Header Info
 			const csvData = [
@@ -119,8 +118,11 @@ const PatientDetailScreen = ({ route, navigation }) => {
 				["#", "Date Test was administered", "Average Nasalance (%)", "Duration (s)", "Nasal Device", "Oral Device"]
 			];
 
+			// Sort data by date ASC for the CSV report
+			const sortedData = [...data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
 			let count = 1;
-			data.forEach((record) => {
+			sortedData.forEach((record) => {
 				const formattedDate = formatDate(record.created_at);
 				const nasalance = record.avg_nasalance_score?.toFixed(1) || "0.0";
 				
