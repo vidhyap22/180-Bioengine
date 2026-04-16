@@ -24,15 +24,15 @@ const PatientDetailScreen = ({ route, navigation }) => {
 	const [notesChanged, setNotesChanged] = useState(false);
 	const [chartData, setChartData] = useState(null);
 	const [isDownloading, setIsDownloading] = useState(false);
-	const [showUploadRecordingModal, setShowUploadRecordingModal] = useState(false);
-	const [uploadedFile, setUploadedFile] = useState(null);
-	const [uploadingRecordings, setUploadingRecordings] = useState(false);
+	const [showImportModal, setShowImportModal] = useState(false);
+	const [importedFile, setImportedFile] = useState(null);
+	const [isImporting, setIsImporting] = useState(false);
 
 	const { openDialog, closeDialog } = useDialog();
 
-	const uploadWAV = async () => {
+	const importAudio = async () => {
 		const res = await DocumentPicker.getDocumentAsync({
-			type: ["audio/wav", "audio/x-wav", "audio/wave"],
+			type: "audio/*",
 			copyToCacheDirectory: true,
 			multiple: false,
 		});
@@ -41,57 +41,49 @@ const PatientDetailScreen = ({ route, navigation }) => {
 
 		const file = res.assets?.[0] ?? res;
 
-		const checkWAV =
-			file.mimeType === "audio/wav" ||
-			file.mimeType === "audio/x-wav" ||
-			file.mimeType === "audio/wave" ||
-			(file.name && file.name.toLowerCase().endsWith(".wav"));
-
-		if (!checkWAV) return null;
-
-		console.log("Successfully uploaded WAV file");
+		console.log("Successfully selected audio file for import");
 		return file;
 	};
 
-	const closeUploadRecordingModal = () => {
-		setShowUploadRecordingModal(false);
-		setUploadedFile(null);
+	const closeImportModal = () => {
+		setShowImportModal(false);
+		setImportedFile(null);
 	};
 
 	const selectRecording = async () => {
 		try {
-			const file = await uploadWAV();
+			const file = await importAudio();
 			if (!file) {
-				Toast.error("Please select an .wav file.");
+				Toast.error("Please select an audio file.");
 				return;
 			}
-			setUploadedFile(file);
+			setImportedFile(file);
 		} catch (e) {
-			Toast.error(`Error occurred while uploading file: ${e?.message ?? e}`);
+			Toast.error(`Error occurred while importing file: ${e?.message ?? e}`);
 		}
 	};
 
-	const handleUploadRecording = async () => {
-		if (!uploadedFile) {
-			Toast.error("Please upload your recording.");
-			closeUploadRecordingModal();
+	const handleImportRecording = async () => {
+		if (!importedFile) {
+			Toast.error("Please select a recording to import.");
+			closeImportModal();
 			return;
 		}
 
 		try {
-			setUploadingRecordings(true);
+			setIsImporting(true);
 
 			navigation.navigate("Test", {
 				patient: patientData,
-				isUploaded: true,
-				uploadedFile: uploadedFile,
+				isImported: true,
+				importedFile: importedFile,
 			});
-			closeUploadRecordingModal();
+			closeImportModal();
 		} catch (e) {
-			Toast.error(`Upload failed: ${e?.message ?? e}`);
-			closeUploadRecordingModal();
+			Toast.error(`Import failed: ${e?.message ?? e}`);
+			closeImportModal();
 		} finally {
-			setUploadingRecordings(false);
+			setIsImporting(false);
 		}
 	};
 
@@ -111,14 +103,50 @@ const PatientDetailScreen = ({ route, navigation }) => {
 				[patientData.mrn]
 			);
 
-			// Create CSV data array
-			const csvData = [["#", "Date Test was administered", "Average Nasalance"]];
+			// Create CSV data array with Patient Header Info
+			const csvData = [
+				["Patient Information"],
+				["MRN", "Full Name", "Gender", "Date of Birth", "Notes"],
+				[
+					patientData.mrn,
+					patientData.full_name,
+					patientData.gender,
+					patientData.dob,
+					patientData.notes || ""
+				],
+				[], // Empty row separator
+				["Test History"],
+				["#", "Date Test was administered", "Average Nasalance (%)", "Duration (s)", "Nasal Device", "Oral Device"]
+			];
 
 			let count = 1;
 			data.forEach((record) => {
 				const formattedDate = formatDate(record.created_at);
-				const nasalance = record.avg_nasalance_score?.toFixed(1) || "N/A";
-				csvData.push([count, formattedDate, nasalance]);
+				const nasalance = record.avg_nasalance_score?.toFixed(1) || "0.0";
+				
+				// Parse metadata if available
+				let meta = { duration: "N/A", nasal_device: "N/A", oral_device: "N/A" };
+				try {
+					if (record.nasalance_data) {
+						const parsed = JSON.parse(record.nasalance_data);
+						meta = {
+							duration: parsed.duration || "N/A",
+							nasal_device: parsed.nasal_device || "N/A",
+							oral_device: parsed.oral_device || "N/A"
+						};
+					}
+				} catch (e) {
+					console.warn("Failed to parse test metadata", e);
+				}
+
+				csvData.push([
+					count,
+					formattedDate,
+					nasalance,
+					meta.duration,
+					meta.nasal_device,
+					meta.oral_device
+				]);
 				count++;
 			});
 
@@ -499,7 +527,7 @@ const PatientDetailScreen = ({ route, navigation }) => {
 			patient: patientData,
 			nasalMic: mockNasalMic,
 			oralMic: mockOralMic,
-			isUploaded: false,
+			isImported: false,
 		});
 	};
 
@@ -595,34 +623,34 @@ const PatientDetailScreen = ({ route, navigation }) => {
 				</View>
 			</ScrollView>
 			<View style={styles.buttonContainer}>
-				<Button title="Upload Recording" icon="add" onPress={() => setShowUploadRecordingModal(true)} style={styles.addButton} size="large" />
+				<Button title="Import Recording" icon="archive-outline" onPress={() => setShowImportModal(true)} style={styles.addButton} size="large" />
 				<Button title="New Test" icon="add" onPress={startNewTest} style={styles.addButton} size="large" />
 			</View>
 
-			<Modal visible={showUploadRecordingModal} animationType="slide" transparent={true} onRequestClose={closeUploadRecordingModal}>
+			<Modal visible={showImportModal} animationType="slide" transparent={true} onRequestClose={closeImportModal}>
 				<View style={styles.modalContainer}>
 					<View style={styles.modalContent}>
 						<View style={styles.modalHeader}>
-							<Text style={styles.modalTitle}>Upload Recording</Text>
-							<TouchableOpacity style={styles.modalCloseButton} onPress={closeUploadRecordingModal} disabled={uploadingRecordings}>
+							<Text style={styles.modalTitle}>Import Recording</Text>
+							<TouchableOpacity style={styles.modalCloseButton} onPress={closeImportModal} disabled={isImporting}>
 								<Ionicons name="close" size={24} color="#666" />
 							</TouchableOpacity>
 						</View>
-						{/* Upload Recording */}
+						{/* Import Recording */}
 						<View style={styles.uploadField}>
-							<Text style={styles.uploadLabel}>Select Recording (.wav)</Text>
+							<Text style={styles.uploadLabel}>Select Recording</Text>
 							<View style={styles.uploadRow}>
-								<TouchableOpacity style={styles.uploadBox} onPress={selectRecording} disabled={uploadingRecordings}>
-									<Ionicons name="cloud-upload-outline" size={18} color={Colors.lightNavalBlue} />
+								<TouchableOpacity style={styles.uploadBox} onPress={selectRecording} disabled={isImporting}>
+									<Ionicons name="archive-outline" size={18} color={Colors.lightNavalBlue} />
 								</TouchableOpacity>
 
-								{uploadedFile ? (
+								{importedFile ? (
 									<View style={styles.fileMetaRow}>
 										<Text style={styles.fileName} numberOfLines={1}>
-											{uploadedFile.name}
+											{importedFile.name}
 										</Text>
 
-										<TouchableOpacity style={styles.clearBtn} onPress={() => setUploadedFile(null)} disabled={uploadingRecordings}>
+										<TouchableOpacity style={styles.clearBtn} onPress={() => setImportedFile(null)} disabled={isImporting}>
 											<Ionicons name="close-circle" size={20} color="#999" />
 										</TouchableOpacity>
 									</View>
@@ -635,15 +663,15 @@ const PatientDetailScreen = ({ route, navigation }) => {
 							<Button
 								title="Cancel"
 								variant="secondary"
-								onPress={closeUploadRecordingModal}
-								disabled={uploadingRecordings}
+								onPress={closeImportModal}
+								disabled={isImporting}
 								style={{ flex: 1, marginRight: 8 }}
 							/>
 							<Button
-								title={uploadingRecordings ? "Uploading..." : "Upload"}
+								title={isImporting ? "Importing..." : "Import"}
 								variant="primary"
-								onPress={handleUploadRecording}
-								disabled={uploadingRecordings}
+								onPress={handleImportRecording}
+								disabled={isImporting}
 								style={{ flex: 1, marginLeft: 8 }}
 							/>
 						</View>

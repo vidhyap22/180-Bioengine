@@ -28,12 +28,12 @@ import { Toast } from "toastify-react-native";
 const TestScreen = ({ navigation, route }) => {
 	const { openDialog, closeDialog } = useDialog();
 
-	const { patient, isUploaded = false, uploadedFile = null } = route.params || {};
+	const { patient, isImported = false, importedFile = null } = route.params || {};
 
-	const [currentStep, setCurrentStep] = useState(isUploaded ? 1 : 0);
+	const [currentStep, setCurrentStep] = useState(isImported ? 1 : 0);
 
 	const steps = ["Device Setup", "Recording", "Processing", "Review"];
-	const uploadSteps = ["Upload", "Processing", "Review"];
+	const importSteps = ["Import", "Processing", "Review"];
 
 	// Recording state management
 	const [recording, setRecording] = useState(false);
@@ -73,22 +73,22 @@ const TestScreen = ({ navigation, route }) => {
 	const deviceConnectedSubscription = useRef(null);
 	const deviceDisconnectedSubscription = useRef(null);
 	const deviceListChangedSubscription = useRef(null);
-	const startedUploadProcessingRef = useRef(false);
+	const startedImportProcessingRef = useRef(false);
 	useEffect(() => {
-		if (!isUploaded) return;
+		if (!isImported) return;
 
-		const uri = uploadedFile?.uri;
+		const uri = importedFile?.uri;
 		if (!uri) return;
 
-		if (startedUploadProcessingRef.current) return;
-		startedUploadProcessingRef.current = true;
+		if (startedImportProcessingRef.current) return;
+		startedImportProcessingRef.current = true;
 
 		setCurrentStep(1);
-		processUploadedRecordings({ uploadedFile });
-	}, [isUploaded, uploadedFile?.uri]);
+		processImportedRecordings({ importedFile });
+	}, [isImported, importedFile?.uri]);
 	// Request microphone permissions when component mounts
 	useEffect(() => {
-		if (isUploaded) return;
+		if (isImported) return;
 
 		let mounted = true;
 
@@ -118,7 +118,7 @@ const TestScreen = ({ navigation, route }) => {
 
 	// Setup pulse animation
 	useEffect(() => {
-		if (isUploaded) return;
+		if (isImported) return;
 		if (recording) {
 			Animated.loop(
 				Animated.sequence([
@@ -145,7 +145,7 @@ const TestScreen = ({ navigation, route }) => {
 
 	// Timer management
 	useEffect(() => {
-		if (isUploaded) return;
+		if (isImported) return;
 		if (recording) {
 			const interval = setInterval(() => {
 				setTimer((prevTimer) => prevTimer + 1);
@@ -434,7 +434,7 @@ const TestScreen = ({ navigation, route }) => {
 
 			// Move to processing step
 			setCurrentStep(2);
-			processRecording(uri);
+			processRecording(uri, timer, currentTestId);
 		} catch (error) {
 			console.error("Failed to stop recording", error);
 			Toast.error(error?.message ? `Failed to stop recording: ${error.message}` : "Failed to save recording.");
@@ -443,21 +443,17 @@ const TestScreen = ({ navigation, route }) => {
 		}
 	};
 
-	const processRecording = async (stereoPath, durationSeconds = 0) => {
+	const processRecording = async (stereoPath, durationSeconds = 0, testId = null) => {
 		if (!isEnhancedAudioAvailable()) return;
 
 		try {
 			setProcessingAudio(true);
 
-			const timestamp = Date.now();
-			// const nasalFileName = `nasal_${timestamp}.pcm`;
-			// const oralFileName = `oral_${timestamp}.pcm`;
-
 			const patientId = patient?.mrn;
-			const testId = currentTestId;
+			const targetTestId = testId || currentTestId;
 
-			const nasalPath = getTestNasalPath(patientId, testId);
-			const oralPath = getTestOralPath(patientId, testId);
+			const nasalPath = getTestNasalPath(patientId, targetTestId);
+			const oralPath = getTestOralPath(patientId, targetTestId);
 
 			console.log(`Processing stereo recording: ${stereoPath}`);
 			console.log(`Target paths - Nasal: ${nasalPath}, Oral: ${oralPath}`);
@@ -503,7 +499,7 @@ const TestScreen = ({ navigation, route }) => {
 			setProcessingAudio(false);
 
 			// Move to review step
-			setCurrentStep(isUploaded ? 2 : 3);
+			setCurrentStep(isImported ? 2 : 3);
 		} catch (error) {
 			console.error("Failed to process recording", error);
 			Toast.error(error?.message ? `Failed to process recording: ${error.message}` : "Failed to process recording.");
@@ -511,7 +507,7 @@ const TestScreen = ({ navigation, route }) => {
 			setProcessingAudio(false);
 		}
 	};
-	const processUploadedRecordings = async ({ uploadedFile }) => {
+	const processImportedRecordings = async ({ importedFile }) => {
 		try {
 			setProcessingAudio(true);
 			const patientId = patient?.mrn;
@@ -520,10 +516,10 @@ const TestScreen = ({ navigation, route }) => {
 			const localStereoPath = getTestStereoPath(patientId, testId);
 
 			await checkTestStructure(patientId, testId);
-			const durationSeconds = await getDurationSecondsFromAudioFile(uploadedFile.uri);
+			const durationSeconds = await getDurationSecondsFromAudioFile(importedFile.uri);
 
 			await FileSystem.copyAsync({
-				from: uploadedFile.uri,
+				from: importedFile.uri,
 				to: localStereoPath,
 			});
 
@@ -534,10 +530,10 @@ const TestScreen = ({ navigation, route }) => {
 				localPath: localStereoPath,
 			});
 
-			await processRecording(localStereoPath, durationSeconds);
+			await processRecording(localStereoPath, durationSeconds, testId);
 		} catch (error) {
-			console.error("processUploadedRecordings failed:", error);
-			Toast.error(error?.message ? `Failed: ${error.message}` : "Failed to process upload.");
+			console.error("processImportedRecordings failed:", error);
+			Toast.error(error?.message ? `Failed: ${error.message}` : "Failed to process import.");
 		} finally {
 			setProcessingAudio(false);
 		}
@@ -628,13 +624,7 @@ const TestScreen = ({ navigation, route }) => {
 			const testDate = new Date().toISOString();
 			const timestamp = Date.now();
 
-			console.log("Nasal recording local path:", nasalRecording.localPath || "Not available");
-			console.log("Oral recording local path:", oralRecording.localPath || "Not available");
-
-			const nasalFileName = `${patient.mrn}_nasal_${timestamp}.pcm`;
-			const oralFileName = `${patient.mrn}_oral_${timestamp}.pcm`;
-
-			console.log("Starting uploads to Supabase...");
+			console.log("Saving test data to local database...");
 
 			// Use the actual calculated nasalance score
 			const calculatedNasalanceScore = Math.round(nasalanceScore);
@@ -643,8 +633,8 @@ const TestScreen = ({ navigation, route }) => {
 				mrn: patient?.mrn,
 				created_at: testDate,
 				avg_nasalance_score: calculatedNasalanceScore,
-				nasal_audio: nasalLocalPath || nasalRecording.uri,
-				oral_audio: oralLocalPath || oralRecording.uri,
+				nasal_audio: nasalRecording.localPath || nasalRecording.uri,
+				oral_audio: oralRecording.localPath || oralRecording.uri,
 				nasalance_data: JSON.stringify({
 					score: calculatedNasalanceScore,
 					nasal_device: selectedDevice?.name || "Internal Microphone",
@@ -671,7 +661,7 @@ const TestScreen = ({ navigation, route }) => {
 				]
 			);
 
-			console.log("Test results saved successfully", data);
+			console.log("Test results saved successfully");
 
 			// No longer deleting local files
 			// try {
@@ -707,7 +697,7 @@ const TestScreen = ({ navigation, route }) => {
 	};
 
 	const renderStepIndicator = () => {
-		const relevantSteps = isUploaded ? uploadSteps : steps;
+		const relevantSteps = isImported ? importSteps : steps;
 		return (
 			<View style={styles.stepIndicator}>
 				{relevantSteps.map((step, index) => (
@@ -901,7 +891,7 @@ const TestScreen = ({ navigation, route }) => {
 				</View>
 
 				{/* Device info */}
-				{!isUploaded && (
+				{!isImported && (
 					<View style={styles.reviewDeviceInfo}>
 						<Text style={styles.reviewDeviceTitle}>Recording Device</Text>
 						<Text style={styles.reviewDeviceName}>{selectedDevice?.name || "Unknown Device"}</Text>
@@ -964,7 +954,7 @@ const TestScreen = ({ navigation, route }) => {
 	};
 
 	const renderCurrentStep = () => {
-		if (!isUploaded) {
+		if (!isImported) {
 			switch (currentStep) {
 				case 0:
 					return renderDeviceSelection();
