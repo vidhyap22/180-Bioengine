@@ -409,6 +409,16 @@ const PatientDetailScreen = ({ route, navigation }) => {
 	const refreshPatientData = async () => {
 		try {
 			const db = getDb();
+			if (!db) {
+				console.warn("refreshPatientData: Database not initialized");
+				return;
+			}
+
+			if (!patientData?.mrn) {
+				console.warn("refreshPatientData: Missing patient MRN", patientData);
+				return;
+			}
+
 			const data = await db.getFirstAsync("SELECT * FROM patient WHERE mrn = ?", [patientData.mrn]);
 
 			if (data) {
