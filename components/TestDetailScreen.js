@@ -126,7 +126,7 @@ const TestDetailScreen = ({ route, navigation }) => {
           <View style={styles.scoreRow}>
             <View style={styles.sideContainer}>
               <Text style={styles.sideLabel}>
-                {test.pressure_data.oral_pressure_avg_kpa?.toFixed(1) || 'N/A'}
+                {test.pressure_data?.oral_pressure_avg_kpa?.toFixed(1) || 'N/A'}
                 <Text style={styles.pressureUnit}>kPa</Text>
 
               </Text>
@@ -141,7 +141,7 @@ const TestDetailScreen = ({ route, navigation }) => {
 
             <View style={styles.sideContainer}>
                 <Text style={styles.sideLabel}>
-                    {test.pressure_data.nasal_pressure_avg_kpa?.toFixed(1) || 'N/A'}
+                    {test.pressure_data?.nasal_pressure_avg_kpa?.toFixed(1) || 'N/A'}
                     <Text style={styles.pressureUnit}>kPa</Text>
                 </Text>
             </View>

@@ -69,6 +69,10 @@ def calculate_waveform(file_path, bars=80):
 
     return waveform
 
+def calculate_pressure():
+    # Placeholder for future implementation
+    return 0.0
+
 def process_audio(input_file, patient_id):
     base_name = os.path.splitext(os.path.basename(input_file))[0]
     output_dir = os.path.dirname(input_file)
@@ -95,7 +99,7 @@ def process_audio(input_file, patient_id):
     
     run_command(f'ffmpeg -y -i "{nasal_wav}" -b:a 128k "{nasal_mp3}"')
     run_command(f'ffmpeg -y -i "{oral_wav}" -b:a 128k "{oral_mp3}"')
-
+    
     # 3. Calculate Nasalance Score and waveform values
     # We use the WAV files for calculation as they are raw PCM
     nasal_rms = calculate_rms(nasal_wav)
@@ -143,7 +147,7 @@ def process_audio(input_file, patient_id):
         #need funciton for this
         "pressure_data" : {
             "oral_pressure_avg_kpa" : oral_pressure,
-            "nasal_pressure_avg_kpa" nasal_pressure:
+            "nasal_pressure_avg_kpa" : nasal_pressure
         }
     }
 
