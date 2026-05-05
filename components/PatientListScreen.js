@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, Text, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../constants/Colors";
-import { getPatientsWithStats } from "../nasomeater_storage/database/database";
+import { getDb } from "../nasomeater_storage/database/database";
 import HeaderBar from "./common/HeaderBar";
 import PatientCard from "./common/PatientCard";
 import LoadingIndicator from "./common/LoadingIndicator";
@@ -28,14 +28,36 @@ const PatientListScreen = ({ navigation }) => {
 
 	const fetchPatients = async () => {
 		try {
-			const data = await getPatientsWithStats();
+			const db = getDb();
 
-			const processedPatients = data.map((patient) => ({
+			const rows = await db.getAllAsync( `
+					SELECT
+						p.mrn,
+						p.full_name,
+						p.dob,
+						p.created_at,
+						p.gender,
+						p.picture_url,
+						p.notes,
+						p.first_language,
+						p.second_language,
+						p.ethnicity,
+						p.race,
+						p.country,
+						COUNT(pd.id) AS tests_count,
+						MAX(pd.created_at) AS last_test_date
+					FROM patient p
+					LEFT JOIN patient_data pd ON pd.mrn = p.mrn
+					GROUP BY p.mrn
+					ORDER BY p.created_at DESC
+				`);
+
+			const processedPatients = rows.map((patient) => ({
 				mrn: patient.mrn,
 				name: patient.full_name,
-				full_name: patient.full_name,
-				testsCount: patient.testsCount || 0,
-				lastTestDate: patient.lastTestDate || null,
+				full_name: patient.full_name, // Add this to ensure compatibility
+				testsCount: patient.tests_count || 0,
+				lastTestDate: patient.last_test_date || null,
 				dob: patient.dob,
 				gender: patient.gender,
 				picture_url: patient.picture_url,
@@ -46,6 +68,8 @@ const PatientListScreen = ({ navigation }) => {
 				race: patient.race,
 				country: patient.country,
 			}));
+
+
 
 			setPatients(processedPatients);
 		} catch (error) {

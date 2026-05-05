@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../constants/Colors";
 import { Toast } from "toastify-react-native";
@@ -17,6 +17,8 @@ const DashboardOption = ({ title, subtitle, icon, onPress }) => (
 );
 
 const DashboardPage = ({ navigation }) => {
+
+
 	const options = [
 		{
 			title: "Start an Evaluation",

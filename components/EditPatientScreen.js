@@ -11,7 +11,6 @@ const EditPatientScreen = ({ route, navigation }) => {
 	const { patient } = route.params;
 	const [name, setName] = useState(patient.full_name);
 	const [gender, setGender] = useState(patient.gender);
-	//const [mrn, setMrn] = useState(patient.mrn.toString());
 	const mrn = patient?.mrn?.toString() || "";
 	const [loading, setLoading] = useState(false);
 	const [birthDate, setBirthDate] = useState({
@@ -89,23 +88,25 @@ const EditPatientScreen = ({ route, navigation }) => {
 		try {
 			setLoading(true);
 
+			const db = getDb();
 			const dob = `${birthDate.year}-${birthDate.month.padStart(2, "0")}-${birthDate.day.padStart(2, "0")}`;
 
-			const db = getDb();
 			await db.runAsync(
-				`UPDATE patient SET 
-					full_name = ?, 
-					gender = ?, 
-					dob = ?, 
-					first_language = ?, 
-					second_language = ?, 
-					ethnicity = ?, 
-					race = ?, 
-					country = ? 
+				`UPDATE patient SET
+					full_name = ?,
+					gender = ?,
+					picture_url = ?,
+					dob = ?,
+					first_language = ?,
+					second_language = ?,
+					ethnicity = ?,
+					race = ?,
+					country = ?
 				WHERE mrn = ?`,
 				[
 					name,
 					gender,
+					patient.picture_url,
 					dob,
 					firstLanguage || null,
 					secondLanguage || null,
@@ -115,6 +116,7 @@ const EditPatientScreen = ({ route, navigation }) => {
 					patient.mrn
 				]
 			);
+
 
 			Toast.success("Patient updated successfully");
 			setTimeout(() => navigation.goBack(), 600);

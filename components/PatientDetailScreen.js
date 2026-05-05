@@ -6,7 +6,8 @@ import { Modal, Platform, View, Text, StyleSheet, ScrollView, Image, TouchableOp
 import { LineChart } from "react-native-chart-kit";
 import Colors from "../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import { getDb, getPatientTests } from "../nasomeater_storage/database/database";
+import { getDb } from "../nasomeater_storage/database/database";
+
 import HeaderBar from "./common/HeaderBar";
 import PatientCard from "./common/PatientCard";
 import LoadingIndicator from "./common/LoadingIndicator";
@@ -14,6 +15,7 @@ import Button from "./common/Button";
 import * as DocumentPicker from "expo-document-picker";
 import { useDialog } from "./common/DialogProvider";
 import { Toast } from "toastify-react-native";
+
 const PatientDetailScreen = ({ route, navigation }) => {
 	const [patientData, setPatientData] = useState(route.params.patient);
 	const [testHistory, setTestHistory] = useState([]);
@@ -95,6 +97,7 @@ const PatientDetailScreen = ({ route, navigation }) => {
 	const handleExport = async () => {
 		try {
 			setIsDownloading(true);
+			const db = getDb();
 
 			const data = testHistory;
 			if (!data || data.length === 0) {
@@ -120,6 +123,7 @@ const PatientDetailScreen = ({ route, navigation }) => {
 
 			// Sort data by date ASC for the CSV report
 			const sortedData = [...data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
 
 			let count = 1;
 			sortedData.forEach((record) => {
@@ -194,7 +198,9 @@ const PatientDetailScreen = ({ route, navigation }) => {
 
 	const fetchTestHistory = async () => {
 		try {
-			const data = await getPatientTests(patientData.mrn);
+			const db = getDb();
+			const data = await db.getAllAsync("SELECT * FROM patient_data WHERE mrn = ? ORDER BY created_at DESC", [patientData.mrn]);
+
 
 			if (data && data.length > 0) {
 				const totalNasalance = data.reduce((sum, test) => sum + (test.avg_nasalance_score || 0), 0);
@@ -246,10 +252,8 @@ const PatientDetailScreen = ({ route, navigation }) => {
 		try {
 			setSavingNotes(true);
 			const db = getDb();
-			await db.runAsync(
-				"UPDATE patient SET notes = ? WHERE mrn = ?",
-				[notes, patientData.mrn]
-			);
+			await db.runAsync("UPDATE patient SET notes = ? WHERE mrn = ?", [notes, patientData.mrn]);
+
 
 			setNotesChanged(false);
 		} catch (error) {
@@ -383,11 +387,8 @@ const PatientDetailScreen = ({ route, navigation }) => {
 	const deletePatient = async () => {
 		try {
 			const db = getDb();
-			
-			// Delete patient data first (cascading if foreign key set, but explicit is safer)
 			await db.runAsync("DELETE FROM patient_data WHERE mrn = ?", [patientData.mrn]);
-			
-			// Delete the patient
+
 			await db.runAsync("DELETE FROM patient WHERE mrn = ?", [patientData.mrn]);
 
 			Toast.success("Patient deleted successfully");
@@ -409,15 +410,7 @@ const PatientDetailScreen = ({ route, navigation }) => {
 	const refreshPatientData = async () => {
 		try {
 			const db = getDb();
-			if (!db) {
-				console.warn("refreshPatientData: Database not initialized");
-				return;
-			}
 
-			if (!patientData?.mrn) {
-				console.warn("refreshPatientData: Missing patient MRN", patientData);
-				return;
-			}
 
 			const data = await db.getFirstAsync("SELECT * FROM patient WHERE mrn = ?", [patientData.mrn]);
 
