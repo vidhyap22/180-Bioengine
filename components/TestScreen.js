@@ -24,6 +24,7 @@ import { getDb } from "../nasomeater_storage/database/database";
 import EnhancedAudioModule from "../modules/EnhancedAudioModule";
 import { checkTestStructure, getTestStereoPath, getTestNasalPath, getTestOralPath } from "../utils/StorageUtils";
 import { Toast } from "toastify-react-native";
+import WifiDeviceManager from "../utils/WifiDeviceManager";
 
 const TestScreen = ({ navigation, route }) => {
 	const { openDialog, closeDialog } = useDialog();
@@ -248,6 +249,21 @@ const TestScreen = ({ navigation, route }) => {
 				return device;
 			});
 
+			// Add ESP32 Wi-Fi device if it's reachable
+			try {
+				const isEsp32Connected = await WifiDeviceManager.ping();
+				if (isEsp32Connected) {
+					enhancedDevices.push({
+						id: "wifi_esp32",
+						name: "Wi-Fi ESP32",
+						type: "wifi",
+						capabilities: { stereo: true },
+					});
+				}
+			} catch (e) {
+				console.log("ESP32 not found on network");
+			}
+
 			setAudioDevices(enhancedDevices);
 
 			// If no device is selected yet, try to select the default
@@ -262,6 +278,12 @@ const TestScreen = ({ navigation, route }) => {
 
 				if (djiDevice) {
 					selectAudioDevice(djiDevice);
+				} else {
+					// Fallback: auto-select ESP32 if it's the only one or specifically available
+					const espDevice = enhancedDevices.find((d) => d.id === "wifi_esp32");
+					if (espDevice) {
+						selectAudioDevice(espDevice);
+					}
 				}
 			}
 		} catch (error) {
@@ -276,6 +298,12 @@ const TestScreen = ({ navigation, route }) => {
 			// Do not allow changing devices during recording
 			if (recording) {
 				Toast.warn("Stop recording before changing the input device.");
+				return;
+			}
+
+			if (device.id === "wifi_esp32") {
+				setSelectedDevice(device);
+				setDeviceSelectorVisible(false);
 				return;
 			}
 
@@ -402,10 +430,15 @@ const TestScreen = ({ navigation, route }) => {
 			await checkTestStructure(patientId, testId);
 			const filePath = getTestStereoPath(patientId, testId);
 
-			console.log("Starting recording to path:", filePath);
-
-			const result = await EnhancedAudioModule.startRecording(filePath);
-			console.log("Recording started, result:", result);
+			if (selectedDevice?.id === "wifi_esp32") {
+				console.log("Starting Wi-Fi recording on ESP32...");
+				await WifiDeviceManager.startRecording();
+			} else {
+				if (!isEnhancedAudioAvailable()) return;
+				console.log("Starting recording to path:", filePath);
+				const result = await EnhancedAudioModule.startRecording(filePath);
+				console.log("Recording started, result:", result);
+			}
 
 			setRecording(true);
 		} catch (error) {
@@ -420,21 +453,68 @@ const TestScreen = ({ navigation, route }) => {
 		try {
 			setRecording(false);
 
-			const result = await EnhancedAudioModule.stopRecording();
-			console.log("Recording stopped, result:", result);
+			let uri = "";
+			if (selectedDevice?.id === "wifi_esp32") {
+				console.log("Stopping Wi-Fi recording and fetching data...");
+				await WifiDeviceManager.stopRecording();
+				
+				const patientId = patient?.mrn;
+				const nasalPath = getTestNasalPath(patientId, currentTestId);
+				const oralPath = getTestOralPath(patientId, currentTestId);
+				
+				const wifiData = await WifiDeviceManager.fetchData(nasalPath, oralPath);
 
-			const uri = result.path;
+				// DEBUG LOGS - Check if data actually arrived
+				console.log("-----------------------------------------");
+				console.log("WIFI DATA RECEIVED (WebSockets):");
+				console.log(`Nasal samples: ${wifiData.nasal?.length || 0}`);
+				console.log(`Oral samples: ${wifiData.oral?.length || 0}`);
+				if (wifiData.nasal?.length > 0) {
+					console.log(`First 5 Nasal values: ${wifiData.nasal.slice(0, 5)}`);
+					console.log(`First 5 Oral values: ${wifiData.oral.slice(0, 5)}`);
+				}
+				console.log("-----------------------------------------");
 
-			setStereoRecording({
-				duration: timer,
-				timestamp: new Date().toISOString(),
-				uri: uri,
-				localPath: uri,
-			});
+				// Calculate RMS values from buffered array data
+				const nasalRms = WifiDeviceManager.calculateRms(wifiData.nasal);
+				const oralRms = WifiDeviceManager.calculateRms(wifiData.oral);
 
-			// Move to processing step
-			setCurrentStep(2);
-			processRecording(uri, timer, currentTestId);
+				const calculatedScore = (nasalRms / (nasalRms + oralRms)) * 100;
+				setNasalanceScore(calculatedScore);
+
+				// Store the newly generated WAV files in the recording states
+				setNasalRecording({
+					duration: timer,
+					timestamp: new Date().toISOString(),
+					uri: wifiData.nasalPath,
+					localPath: wifiData.nasalPath,
+				});
+				setOralRecording({
+					duration: timer,
+					timestamp: new Date().toISOString(),
+					uri: wifiData.oralPath,
+					localPath: wifiData.oralPath,
+				});
+
+				setCurrentStep(3); // Skip processing step (WAV generation done)
+				return;
+			} else {
+				if (!isEnhancedAudioAvailable()) return;
+				const result = await EnhancedAudioModule.stopRecording();
+				console.log("Recording stopped, result:", result);
+				uri = result.path;
+
+				setStereoRecording({
+					duration: timer,
+					timestamp: new Date().toISOString(),
+					uri: uri,
+					localPath: uri,
+				});
+
+				// Move to processing step
+				setCurrentStep(2);
+				processRecording(uri, timer, currentTestId);
+			}
 		} catch (error) {
 			console.error("Failed to stop recording", error);
 			Toast.error(error?.message ? `Failed to stop recording: ${error.message}` : "Failed to save recording.");
@@ -725,7 +805,8 @@ const TestScreen = ({ navigation, route }) => {
 					{item.type === "bluetooth" && <Ionicons name="bluetooth" size={20} color={isSelected ? "#fff" : Colors.lightNavalBlue} />}
 					{item.type === "builtin" && <Ionicons name="mic" size={20} color={isSelected ? "#fff" : Colors.lightNavalBlue} />}
 					{item.type === "wired" && <Ionicons name="headset" size={20} color={isSelected ? "#fff" : Colors.lightNavalBlue} />}
-					{item.type !== "usb" && item.type !== "bluetooth" && item.type !== "builtin" && item.type !== "wired" && (
+					{item.type === "wifi" && <Ionicons name="wifi" size={20} color={isSelected ? "#fff" : Colors.lightNavalBlue} />}
+					{item.type !== "usb" && item.type !== "bluetooth" && item.type !== "builtin" && item.type !== "wired" && item.type !== "wifi" && (
 						<Ionicons name="hardware-chip" size={20} color={isSelected ? "#fff" : Colors.lightNavalBlue} />
 					)}
 				</View>
@@ -758,10 +839,12 @@ const TestScreen = ({ navigation, route }) => {
 							{selectedDevice.type === "bluetooth" && <Ionicons name="bluetooth" size={24} color="#fff" />}
 							{selectedDevice.type === "builtin" && <Ionicons name="mic" size={24} color="#fff" />}
 							{selectedDevice.type === "wired" && <Ionicons name="headset" size={24} color="#fff" />}
+							{selectedDevice.type === "wifi" && <Ionicons name="wifi" size={24} color="#fff" />}
 							{selectedDevice.type !== "usb" &&
 								selectedDevice.type !== "bluetooth" &&
 								selectedDevice.type !== "builtin" &&
-								selectedDevice.type !== "wired" && <Ionicons name="hardware-chip" size={24} color="#fff" />}
+								selectedDevice.type !== "wired" &&
+								selectedDevice.type !== "wifi" && <Ionicons name="hardware-chip" size={24} color="#fff" />}
 						</View>
 
 						<View style={styles.selectedDeviceInfo}>
@@ -913,7 +996,11 @@ const TestScreen = ({ navigation, route }) => {
 						<Text style={styles.recordingDuration}>Duration: {formatTime(nasalRecording?.duration || 0)}</Text>
 					</View>
 
-					<TouchableOpacity style={styles.playButton} onPress={togglePlayNasal} disabled={loading}>
+					<TouchableOpacity
+						style={[styles.playButton, (!nasalRecording?.uri) && styles.disabledButton]}
+						onPress={togglePlayNasal}
+						disabled={loading || !nasalRecording?.uri}
+					>
 						<Ionicons name={isPlayingNasal ? "pause" : "play"} size={24} color="white" />
 					</TouchableOpacity>
 				</View>
@@ -925,10 +1012,21 @@ const TestScreen = ({ navigation, route }) => {
 						<Text style={styles.recordingDuration}>Duration: {formatTime(oralRecording?.duration || 0)}</Text>
 					</View>
 
-					<TouchableOpacity style={styles.playButton} onPress={togglePlayOral} disabled={loading}>
+					<TouchableOpacity
+						style={[styles.playButton, (!oralRecording?.uri) && styles.disabledButton]}
+						onPress={togglePlayOral}
+						disabled={loading || !oralRecording?.uri}
+					>
 						<Ionicons name={isPlayingOral ? "pause" : "play"} size={24} color="white" />
 					</TouchableOpacity>
 				</View>
+
+				{selectedDevice?.type === "wifi" && (
+					<View style={styles.infoContainer}>
+						<Ionicons name="information-circle-outline" size={18} color="#666" />
+						<Text style={styles.infoText}>Audio playback is not available for Wi-Fi recordings.</Text>
+					</View>
+				)}
 
 				<View style={styles.navigationRow}>
 					<TouchableOpacity
@@ -1562,5 +1660,17 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: "#856404",
 		flex: 1,
+	},
+	infoContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 12,
+		marginBottom: 16,
+	},
+	infoText: {
+		marginLeft: 8,
+		fontSize: 14,
+		color: "#666",
+		fontStyle: "italic",
 	},
 });
