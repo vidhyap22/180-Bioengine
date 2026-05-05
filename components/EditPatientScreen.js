@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from "react-native";
 import Colors from "../constants/Colors";
-import { supabase } from "../utils/supabaseClient";
+import { getDb } from "../nasomeater_storage/database/database";
 import HeaderBar from "./common/HeaderBar";
 import PatientFormFields from "./common/PatientFormFields";
 import LoadingIndicator from "./common/LoadingIndicator";
@@ -11,7 +11,6 @@ const EditPatientScreen = ({ route, navigation }) => {
 	const { patient } = route.params;
 	const [name, setName] = useState(patient.full_name);
 	const [gender, setGender] = useState(patient.gender);
-	//const [mrn, setMrn] = useState(patient.mrn.toString());
 	const mrn = patient?.mrn?.toString() || "";
 	const [loading, setLoading] = useState(false);
 	const [birthDate, setBirthDate] = useState({
@@ -89,24 +88,34 @@ const EditPatientScreen = ({ route, navigation }) => {
 		try {
 			setLoading(true);
 
+			const db = getDb();
 			const dob = new Date(parseInt(birthDate.year), parseInt(birthDate.month) - 1, parseInt(birthDate.day), 12, 0, 0).toISOString().split("T")[0];
 
-			const { error } = await supabase
-				.from("patient")
-				.update({
-					full_name: name,
+			await db.runAsync(
+				`UPDATE patient SET
+					full_name = ?,
+					gender = ?,
+					picture_url = ?,
+					dob = ?,
+					first_language = ?,
+					second_language = ?,
+					ethnicity = ?,
+					race = ?,
+					country = ?
+				WHERE mrn = ?`,
+				[
+					name,
 					gender,
-					picture_url: patient.picture_url, // Keep existing picture URL if any
-					dob: dob,
-					first_language: firstLanguage || null,
-					second_language: secondLanguage || null,
-					ethnicity: ethnicity || null,
-					race: race || null,
-					country: country || null,
-				})
-				.eq("mrn", patient.mrn);
-
-			if (error) throw error;
+					patient.picture_url,
+					dob,
+					firstLanguage || null,
+					secondLanguage || null,
+					ethnicity || null,
+					race || null,
+					country || null,
+					patient.mrn
+				]
+			);
 
 			Toast.success("Patient updated successfully");
 			setTimeout(() => navigation.goBack(), 600);
