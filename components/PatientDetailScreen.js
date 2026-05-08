@@ -426,6 +426,7 @@ const PatientDetailScreen = ({ route, navigation }) => {
 	useEffect(() => {
 		const unsubscribe = navigation.addListener("focus", () => {
 			refreshPatientData();
+			fetchTestHistory();
 		});
 
 		return unsubscribe;

@@ -767,7 +767,7 @@ const TestScreen = ({ navigation, route }) => {
 			// }
 
 			Toast.success("Saved test results and audio recordings.");
-			navigation.navigate("PatientDetail", { patient });
+			navigation.goBack();
 		} catch (error) {
 			console.error("Error saving test results:", error);
 			Toast.error(error?.message ? `Failed to save: ${error.message}` : "Failed to save test results. Please try again.");
