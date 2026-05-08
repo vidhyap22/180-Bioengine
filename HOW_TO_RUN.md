@@ -1,54 +1,83 @@
 # 180-Bioengine - Running Instructions
 
-This guide provides instructions on how to run the **nasomEATR** (180-Bioengine) application on an emulator or physical phone. Since this is an **Expo** project with native modules, follow these steps.
+This guide provides instructions on how to run the **nasomEATR** (180-Bioengine) application. This is an **Expo** project with native modules, requiring a development build to run on an emulator or physical device.
 
-## Prerequisites
+## 📋 Prerequisites
 
-1.  **Dependencies**: Run `npm install` in the project root.
-2.  **Android SDK**: Ensure the Android SDK is installed.
-3.  **Local Properties**: Create `android/local.properties` if it doesn't exist:
-    `sdk.dir=/Users/arshiyasalehi/Library/Android/sdk`
+Before starting, ensure you have the following installed:
+- **Node.js** (v18+) & **npm**
+- **Android Studio** & **Android SDK**
+- **Java Development Kit (JDK)** (v17+ recommended)
+
+### 1. Install Dependencies
+Run the following command in the project root:
+```bash
+npm install
+```
+
+### 2. Configure Android SDK Path
+The project needs to know where your Android SDK is located. Create or edit the `android/local.properties` file:
+
+**macOS / Linux:**
+```properties
+sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk
+```
+*(Replace `YOUR_USERNAME` with your actual system username)*
+
+**Windows:**
+```properties
+sdk.dir=C\:\\Users\\YOUR_USERNAME\\AppData\\Local\\Android\\Sdk
+```
 
 ---
 
 ## 💻 Running on an Emulator
 
-### 1. Start the Emulator (Terminal)
-You can start your emulator without opening Android Studio:
+### 1. Find and Start your Emulator
+You can list your available Android Virtual Devices (AVDs) with:
 ```bash
-~/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_36.1 &
+~/Library/Android/sdk/emulator/emulator -list-avds
+```
+Once you have the name (e.g., `Pixel_7_API_35`), start it:
+```bash
+~/Library/Android/sdk/emulator/emulator -avd YOUR_EMULATOR_NAME &
 ```
 
 ### 2. Launch the Application
-Once the emulator is booted, run:
+With the emulator running, execute:
 ```bash
 npm run android
 ```
-*Note: This will build the development client and install it on the emulator.*
+*Note: The first run will take a few minutes as it builds the native Android project.*
 
 ---
 
 ## 📱 Running on a Physical Phone
 
-### Option A: Via USB (Native Features)
-1. Connect your phone via USB with **USB Debugging** enabled.
-2. Run:
+1. Connect your phone via USB.
+2. Enable **USB Debugging** in the phone's Developer Options.
+3. Run:
    ```bash
    npm run android
    ```
 
-### Option B: Via Expo Go (Quick UI Check)
-1. Install the **Expo Go** app on your phone.
-2. Run:
-   ```bash
-   npx expo start
-   ```
-3. Scan the QR code with your phone.
+---
+
+## ⚙️ Environment Configuration
+
+If the app requires connection to Supabase or other services, create a `.env` file in the root directory:
+```env
+REACT_APP_SB_API_KEY="your_supabase_api_key"
+```
 
 ---
 
 ## 🛠 Troubleshooting
 
-- **Clean Build**: If you see native errors, try:
-  `cd android && ./gradlew clean && cd ..`
-- **SDK Path**: If Gradle says "SDK not found", double-check your `android/local.properties` file.
+- **Native Build Errors**: Try cleaning the Gradle build:
+  ```bash
+  cd android && ./gradlew clean && cd ..
+  ```
+- **SDK Not Found**: Double-check that the path in `android/local.properties` exists and uses forward slashes (or escaped backslashes on Windows).
+- **Node Modules**: If you encounter dependency issues, try `rm -rf node_modules && npm install`.
+
