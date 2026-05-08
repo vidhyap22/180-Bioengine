@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, Text, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import Colors from "../constants/Colors";
 import { getDb } from "../nasomeater_storage/database/database";
 import HeaderBar from "./common/HeaderBar";
@@ -16,9 +17,11 @@ const PatientListScreen = ({ navigation }) => {
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 
-	useEffect(() => {
-		fetchPatients();
-	}, []);
+	useFocusEffect(
+		React.useCallback(() => {
+			fetchPatients();
+		}, [])
+	);
 
 	const onRefresh = React.useCallback(async () => {
 		setRefreshing(true);
