@@ -54,12 +54,37 @@ npm run android
 
 ## 📱 Running on a Physical Phone
 
-1. Connect your phone via USB.
-2. Enable **USB Debugging** in the phone's Developer Options.
-3. Run:
+1. **Connect your phone** via USB.
+2. **Enable USB Debugging**:
+   - Go to **Settings > About Phone** and tap **Build Number** 7 times.
+   - Go to **Settings > Developer Options** and enable **USB Debugging**.
+3. **Verify Connection**:
+   Check if your device is recognized:
+   ```bash
+   adb devices
+   ```
+   *Note: If `adb` is not found, it is located in your SDK's `platform-tools` folder.*
+4. **Launch**:
    ```bash
    npm run android
    ```
+
+---
+
+## 🔄 Switching Between Devices
+
+If you have multiple devices (e.g., an emulator and a physical phone) and want to choose where to run:
+
+### 1. Interactive Device Selection
+Run the following command to see a list of all connected devices and emulators:
+```bash
+npx expo run:android --device
+```
+Use the arrow keys to select your desired device and press **Enter**.
+
+### 2. Default Behavior
+By default, `npm run android` will attempt to run on the first available device it finds. If an emulator is already running, it often defaults to that. Use the `--device` flag above to override this.
+
 
 ---
 
