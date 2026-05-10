@@ -103,6 +103,11 @@ REACT_APP_SB_API_KEY="your_supabase_api_key"
   ```bash
   cd android && ./gradlew clean && cd ..
   ```
+- **White Screen on Physical Phone**: If the app opens but shows a white screen:
+  1. Connect your phone via USB.
+  2. Run: `adb reverse tcp:8081 tcp:8081`
+  3. Reload the app (shake the phone or press `r` in the terminal).
 - **SDK Not Found**: Double-check that the path in `android/local.properties` exists and uses forward slashes (or escaped backslashes on Windows).
 - **Node Modules**: If you encounter dependency issues, try `rm -rf node_modules && npm install`.
+
 
