@@ -208,6 +208,9 @@ const PatientDetailScreen = ({ route, navigation }) => {
 				setAverageNasalance(avg);
 
 				prepareChartData([...data].reverse());
+			} else {
+				setAverageNasalance(null);
+				setChartData(null);
 			}
 
 			setTestHistory(data || []);

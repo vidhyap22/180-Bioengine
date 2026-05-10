@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StatusBar } from "react-native";
+import { StatusBar, View, Text, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -26,12 +26,42 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
     const [dbReady, setDbReady] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        initDb().then(() => setDbReady(true)).catch(console.error);
+        initDb()
+            .then(() => setDbReady(true))
+            .catch(err => {
+                console.error("Database Init Error:", err);
+                setError(err.message || String(err));
+            });
     }, []);
 
-    if (!dbReady) return null;
+    if (error) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 20 }}>
+                <Ionicons name="alert-circle" size={64} color="#ef4444" />
+                <Text style={{ marginTop: 20, fontSize: 18, fontWeight: 'bold', color: '#1f2937' }}>Startup Error</Text>
+                <Text style={{ marginTop: 10, fontSize: 14, color: '#6b7280', textAlign: 'center' }}>{error}</Text>
+                <TouchableOpacity 
+                    style={{ marginTop: 30, backgroundColor: '#1e3a8a', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+                    onPress={() => { setError(null); initDb().then(() => setDbReady(true)).catch(setError); }}
+                >
+                    <Text style={{ color: '#fff', fontWeight: '600' }}>Retry</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    if (!dbReady) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+                <ActivityIndicator size="large" color="#1e3a8a" />
+                <Text style={{ marginTop: 20, fontSize: 16, color: '#666' }}>Initializing Database...</Text>
+            </View>
+        );
+    }
+
 
 
 	return (

@@ -10,7 +10,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import * as FileSystem from "expo-file-system/legacy";
 import Colors from '../constants/Colors';
+import { getDb } from "../nasomeater_storage/database/database";
+import { Toast } from "toastify-react-native";
 
 const TestDetailScreen = ({ route, navigation }) => {
   const { test } = route.params;
@@ -83,6 +86,49 @@ const TestDetailScreen = ({ route, navigation }) => {
     }
     return 0;
   };
+  
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Test",
+      "Are you sure you want to delete this test? This will permanently remove the record and associated audio files.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              const db = getDb();
+              
+              // Delete from database
+              await db.runAsync("DELETE FROM patient_data WHERE id = ?", [test.id]);
+              
+              // Attempt to delete audio files
+              try {
+                if (test.nasal_audio) {
+                  await FileSystem.deleteAsync(test.nasal_audio, { idempotent: true });
+                }
+                if (test.oral_audio) {
+                  await FileSystem.deleteAsync(test.oral_audio, { idempotent: true });
+                }
+              } catch (fileError) {
+                console.warn("Failed to delete audio files:", fileError);
+              }
+              
+              Toast.success("Test deleted successfully");
+              navigation.goBack();
+            } catch (error) {
+              console.error("Error deleting test:", error);
+              Toast.error("Failed to delete test");
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -97,6 +143,13 @@ const TestDetailScreen = ({ route, navigation }) => {
           <Ionicons name="chevron-back" size={24} color={Colors.lightNavalBlue} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Test Details</Text>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          disabled={isLoading}
+        >
+          <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
@@ -280,6 +333,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.lightNavalBlue,
     marginLeft: 10,
+  },
+  deleteButton: {
+    padding: 5,
   },
   scrollView: {
     flex: 1,
