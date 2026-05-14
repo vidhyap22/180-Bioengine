@@ -22,6 +22,7 @@
       "bundleIdentifier": "com.jasperdoan.nasomEATR"
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -36,7 +37,9 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.ACCESS_MEDIA_LOCATION"
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.jasperdoan.nasomEATR"
     },
