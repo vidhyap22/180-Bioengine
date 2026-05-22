@@ -20,22 +20,22 @@ const peak = await findPeakAmplitude(FileSystem.documentDirectory + 'recording.w
 function takes the wav file and converts it into a binary string. Stores it in a byte array.
 use DataView for tools to read the bytes, skip 44 bytes (all the metaData)
 */
-async function readWav(wavPath) {
+async function readWavSamples(wavPath) {
     //turn the wav into a base64 string
     const base64 = await FileSystem.readAsStringAsync(wavPath, {encoding:FileSystem.EncodingType.Base64});
     const binStr = atob(base64); //this is the data to be read
     const bytes = new Uint8Array(binStr.length);
 
     //convert to bytes so that we can then store each byte inside the bytes arr
-    for (let i = 0; i < bytes.length; ++i){
+    for (let i = 0; i < binStr.length; ++i){
         bytes[i] = binStr.charCodeAt(i); 
     }
 
     const view = new DataView(bytes.buffer);
     //get the metaData
-    const numChannels = view.getInt16(22,true); 
-    const sampleRate = view.getInt32(24,true);
-    const sampleWidth = view.getInt16(34,true) / 8; //conversion needed
+    const numChannels = view.getUint16(22,true); 
+    const sampleRate = view.getUint32(24,true);
+    const sampleWidth = view.getUint16(34,true) / 8; //conversion needed
 
     if (sampleWidth !== 2){
         throw new Error(`16 bit audio only, got ${sampleWidth * 8}-bit: ${wavPath}`);
