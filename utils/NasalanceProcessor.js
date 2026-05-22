@@ -13,6 +13,8 @@
 //     for parity testing against the Python implementation.
 
 import * as FileSystem from 'expo-file-system/legacy';
+import { sample } from 'lodash';
+import { View } from 'react-native-web';
 
 /*
 example call:
@@ -30,18 +32,36 @@ async function readWav(wavPath) {
     for (let i = 0; i < bytes.length; ++i){
         bytes[i] = binStr.charCodeAt(i); 
     }
+
     const view = new DataView(bytes.buffer);
+    //get the metaData
+    const numChannels = view.getInt16(22,true); 
+    const sampleRate = view.getInt16(24,true);
+    const sampleWidth = view.getInt16(34,true) / 8; //conversion needed
 
-    let peak = 0;
-    for (let offset = 44; offset < bytes.length; offset +=2){
-        //skip metaData header (44bytes), true to read as little edian
-        const sample = view.getInt16(offset, true);
-
-        if (Math.abs(sample) > peak){
-            peak = Math.abs(sample);
-        }
+    if (sampleWidth !== 2){
+        throw new Error('16 bit audio only, got ${sampleWidth * 8}-bit: ${wavPath}');
     }
 
-    //normalize
-    return peak / 32768;
+    const start = 44;
+    const totalSamples = (bytes.length - start) / 2;
+    const allSamples = new Int16Array(totalSamples);
+
+    for (let i = 0; i < totalSamples; i++){
+        allSamples[i] = view.getInt16(start + i *2, True);
+    }
+
+    let samples;
+    if (numChannels > 1){
+        samples = new Int16Array(Math.floor(totalSamples / numChannels));
+        for (let i = 0; i < samples.length; i++){
+            samples[i] = allSamples[i * numChannels];
+        }
+    }else {
+        samples = allSamples
+    }
+
+    const numFrames = samples.length;
+    return {samples, numChannels, sampleWidth, sampleRate, numFrames};
 }
+
