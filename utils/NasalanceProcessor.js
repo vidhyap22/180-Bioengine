@@ -9,12 +9,10 @@
 //   - No bandpass filter (scipy port deferred).
 //   - No MP3 conversion (WAV-only on-device).
 //   - File I/O uses expo-file-system; pure scoring functions are
-//     environment-agnostic so they can also be exercised from Node
+//     environment-agnostic so they can also be exercirsed from Node
 //     for parity testing against the Python implementation.
 
 import * as FileSystem from 'expo-file-system/legacy';
-import { sample } from 'lodash';
-import { View } from 'react-native-web';
 
 /*
 example call:
@@ -36,23 +34,23 @@ async function readWav(wavPath) {
     const view = new DataView(bytes.buffer);
     //get the metaData
     const numChannels = view.getInt16(22,true); 
-    const sampleRate = view.getInt16(24,true);
+    const sampleRate = view.getInt32(24,true);
     const sampleWidth = view.getInt16(34,true) / 8; //conversion needed
 
     if (sampleWidth !== 2){
-        throw new Error('16 bit audio only, got ${sampleWidth * 8}-bit: ${wavPath}');
+        throw new Error(`16 bit audio only, got ${sampleWidth * 8}-bit: ${wavPath}`);
     }
 
     const start = 44;
-    const totalSamples = (bytes.length - start) / 2;
+    const totalSamples = (bytes.length - start) / 2; //each sample is 2 bytes long
     const allSamples = new Int16Array(totalSamples);
 
     for (let i = 0; i < totalSamples; i++){
-        allSamples[i] = view.getInt16(start + i *2, True);
+        allSamples[i] = view.getInt16(start + i *2, true);
     }
 
     let samples;
-    if (numChannels > 1){
+    if (numChannels > 1){ //just incase to handle stereo
         samples = new Int16Array(Math.floor(totalSamples / numChannels));
         for (let i = 0; i < samples.length; i++){
             samples[i] = allSamples[i * numChannels];
