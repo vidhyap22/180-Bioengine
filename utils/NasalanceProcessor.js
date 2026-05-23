@@ -56,10 +56,22 @@ async function readWavSamples(wavPath) {
             samples[i] = allSamples[i * numChannels];
         }
     }else {
-        samples = allSamples
+        samples = allSamples;
     }
 
     const numFrames = samples.length;
     return {samples, numChannels, sampleWidth, sampleRate, numFrames};
 }
 
+function calculateRms(samples) {
+    if (samples.length === 0){
+        return 0.0;
+    }
+
+    const sumSquares = samples.reduce( (sum, currVal) => sum + currVal ** 2, 0);
+    const rms = Math.sqrt(sumSquares / samples.length);
+    console.log(sumSquares);
+    console.log(rms);
+
+    return rms;
+}
