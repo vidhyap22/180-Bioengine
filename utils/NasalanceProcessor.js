@@ -3,14 +3,11 @@
 // JS port of modules/process_audio.py for on-device scoring.
 // Reads two 16-bit mono PCM WAV files (nasal + oral), computes RMS,
 // nasalance score, per-bin waveform, and estimated pressure (kPa),
-// and returns a result dict matching the Python script's schema.
 //
-// Scope notes (v1):
-//   - No bandpass filter (scipy port deferred).
-//   - No MP3 conversion (WAV-only on-device).
-//   - File I/O uses expo-file-system; pure scoring functions are
-//     environment-agnostic so they can also be exercirsed from Node
-//     for parity testing against the Python implementation.
+// notes:
+//   - No bandpass filter
+//   - No MP3 conversion
+//   - File I/O uses expo-file-system
 
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -106,4 +103,26 @@ function calculateWaveForm(samples, bars = 80){
 
     return waveForm;
 
+}
+
+//rough estimate of pressure in kpa based on rms value 
+//uses spl db = 94 + 20 * log10(normalized_rms)
+//assume false for normalized, function does it inside
+function calculatePressure(rmsVal){
+    if (rmsVal <= 0){
+        return 0.0;
+    }
+
+    //noramlize
+    const normalizedRms = rmsVal / 32768.0;
+    const splDb = 94 + 20 * Math.log10(normalizedRms);
+    const pressure = 20e-6 * (10 ** (splDb / 20.0));
+
+    const pressureKpa = pressure / 1000.0;
+    return Math.round(pressureKpa * 1e8) / 1e8; 
+}
+
+//assume filter is negative
+async function proccessAudio(nasalWav, oralWav, patientId ) {
+    
 }
