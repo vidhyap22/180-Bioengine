@@ -75,3 +75,35 @@ function calculateRms(samples) {
 
     return rms;
 }
+
+//doesnt have normalized already flag, assuming false
+function calculateWaveForm(samples, bars = 80){  
+    const scale = 32768;
+    const blockSize = Math.max(1, Math.floor(samples.length / bars));
+    let waveForm = [];
+
+    for (let i = 0; i < bars; i++){
+        let start = i * blockSize;
+
+        let end;
+        if (i < bars - 1){
+            end = (i + 1) * blockSize;
+        }else{
+            end = samples.length;
+        }
+
+        let block = samples.slice(start, end);
+
+        if (block.length === 0){
+            waveForm.push(0.0);
+            continue;
+        }
+
+        let rms = calculateRms(block)
+
+        waveForm.push(rms/scale);
+    }
+
+    return waveForm;
+
+}
