@@ -123,6 +123,26 @@ function calculatePressure(rmsVal){
 }
 
 //assume filter is negative
-async function proccessAudio(nasalWav, oralWav, patientId ) {
-    
+async function processAudio(nasalWavPath, oralWavPath, patientId ) {
+    //need to add error checking wav paths
+
+    //run the asyn functions in parellell
+    const[nasal,oral] = await Promise.all([readWavSamples(nasalWavPath), readWavSamples(oralWavPath)]);
+
+    const {samples: nasalSamples, sampleRate: nasalRate} = nasal;
+    const {samples: oralSamples} = oral;
+
+    const nasalRms = calculateRms(nasalSamples);
+    const oralRms = calculateRms(oralSamples);
+
+    const nasalanceWaveForm = calculateWaveForm(nasalSamples);
+    const oralWaveForm = calculateWaveForm(oralSamples);
+
+    const nasalPressure = calculatePressure(nasalRms);
+    const oralPressure = calculatePressure(oralRms);
+
+    const duration = 
+
+    const result = {mrn: patientId, avg_nasalance_score: avgNasalanceScore,};
+
 }
