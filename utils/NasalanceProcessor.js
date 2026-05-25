@@ -67,8 +67,8 @@ function calculateRms(samples) {
 
     const sumSquares = samples.reduce( (sum, currVal) => sum + currVal ** 2, 0);
     const rms = Math.sqrt(sumSquares / samples.length);
-    console.log(sumSquares);
-    console.log(rms);
+    //console.log(sumSquares);
+    //console.log(rms);
 
     return rms;
 }
@@ -135,14 +135,44 @@ async function processAudio(nasalWavPath, oralWavPath, patientId ) {
     const nasalRms = calculateRms(nasalSamples);
     const oralRms = calculateRms(oralSamples);
 
-    const nasalanceWaveForm = calculateWaveForm(nasalSamples);
-    const oralWaveForm = calculateWaveForm(oralSamples);
+    const totalRms = nasalRms + oralRms;
+    const nasalanceScore = totalRms > 0 ? (nasalRms / totalRms) * 100 : 0;
+
+    const nasalWaveform = calculateWaveForm(nasalSamples);
+    const oralWaveform = calculateWaveForm(oralSamples);
 
     const nasalPressure = calculatePressure(nasalRms);
     const oralPressure = calculatePressure(oralRms);
 
-    const duration = 
+    const duration = Math.round((nasalSamples.length / nasalRate) * 100) / 100;
 
-    const result = {mrn: patientId, avg_nasalance_score: avgNasalanceScore,};
 
+    const result = {
+        mrn: patientId,
+        avg_nasalance_score: Math.round(nasalanceScore * 10) / 10,
+        nasal_audio_file: nasalWavPath.split('/').pop(),
+        oral_audio_file: oralWavPath.split('/').pop(),
+        nasalance_data: {
+            duration,
+            nasal_device: "External (icspeech)",
+            oral_device: "External (icspeech)",
+            source_nasal_file: nasalWavPath.split('/').pop(),
+            source_oral_file: oralWavPath.split('/').pop(),
+            filter_applied: false,
+            filter_range_hz: null,
+        },
+        waveform_data: {
+            nasal_waveform: nasalWaveform,
+            oral_waveform: oralWaveform,
+        },
+        pressure_data: {
+            oral_pressure_avg_kpa: oralPressure,
+            nasal_pressure_avg_kpa: nasalPressure,
+        },
+    };
+
+
+    return result;
 }
+
+export {processAudio};
