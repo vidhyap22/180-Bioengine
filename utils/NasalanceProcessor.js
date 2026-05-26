@@ -302,4 +302,14 @@ async function processAudio(nasalWavPath, oralWavPath, patientId ) {
     return result;
 }
 
-export {processAudio};
+export {
+  processAudio,
+  readWavSamples,
+  calculateRms,
+  calculateWaveForm,
+  calculatePressure,
+  trimSilence,
+  applyBandpassFilter,
+  windowedNasalance,
+  sosfilt,
+};
