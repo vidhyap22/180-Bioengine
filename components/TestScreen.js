@@ -25,6 +25,9 @@ import EnhancedAudioModule from "../modules/EnhancedAudioModule";
 import { checkTestStructure, getTestStereoPath, getTestNasalPath, getTestOralPath } from "../utils/StorageUtils";
 import { Toast } from "toastify-react-native";
 import WifiDeviceManager from "../utils/WifiDeviceManager";
+import { processAudio } from '../utils/NasalanceProcessor';
+
+
 
 const TestScreen = ({ navigation, route }) => {
 	const { openDialog, closeDialog } = useDialog();
@@ -47,6 +50,8 @@ const TestScreen = ({ navigation, route }) => {
 	const [nasalRecording, setNasalRecording] = useState(null);
 	const [oralRecording, setOralRecording] = useState(null);
 	const [nasalanceScore, setNasalanceScore] = useState(null);
+	const [processorResult, setProcessorResult] = useState(null);
+
 
 	// Device selection state
 	const [isScanning, setIsScanning] = useState(false);
@@ -475,12 +480,7 @@ const TestScreen = ({ navigation, route }) => {
 				}
 				console.log("-----------------------------------------");
 
-				// Calculate RMS values from buffered array data
-				const nasalRms = WifiDeviceManager.calculateRms(wifiData.nasal);
-				const oralRms = WifiDeviceManager.calculateRms(wifiData.oral);
-
-				const calculatedScore = (nasalRms / (nasalRms + oralRms)) * 100;
-				setNasalanceScore(calculatedScore);
+				const recordingDuration = durationSeconds || timer || 0; 
 
 				// Store the newly generated WAV files in the recording states
 				setNasalRecording({
@@ -495,6 +495,8 @@ const TestScreen = ({ navigation, route }) => {
 					uri: wifiData.oralPath,
 					localPath: wifiData.oralPath,
 				});
+
+				await(runProcessor(wifiData.nasalPath, wifiData.oralPath));
 
 				setCurrentStep(3); // Skip processing step (WAV generation done)
 				return;
@@ -523,6 +525,24 @@ const TestScreen = ({ navigation, route }) => {
 		}
 	};
 
+	const runProcessor = async (nasalPath, oralPath) => {
+		setProcessingAudio(true);
+		try {
+			const result = await processAudio(nasalPath, oralPath, patient?.mrn);
+			setProcessorResult(result);
+			setNasalanceScore(result.avg_nasalance_score);
+		} catch (err) {
+			console.error('processAudio failed:', err);
+			Toast.error('Failed to compute nasalance score.');
+			// Leave score null so user knows something went wrong rather than seeing a stale value
+			setProcessorResult(null);
+			setNasalanceScore(null);
+		} finally {
+			setProcessingAudio(false);
+		}
+	};
+
+
 	const processRecording = async (stereoPath, durationSeconds = 0, testId = null) => {
 		if (!isEnhancedAudioAvailable()) return;
 
@@ -545,20 +565,6 @@ const TestScreen = ({ navigation, route }) => {
 				oralPath, // right channel = oral mic
 			);
 
-			console.log("Split complete, result:", result);
-
-			// Calculate RMS values for both channels using the native module
-			const nasalRms = await EnhancedAudioModule.calculateRms(result.leftPath);
-			const oralRms = await EnhancedAudioModule.calculateRms(result.rightPath);
-
-			console.log(`RMS values - Nasal: ${nasalRms}, Oral: ${oralRms}`);
-
-			// Calculate nasalance score (nasal / (nasal + oral) * 100)
-			const calculatedScore = (nasalRms / (nasalRms + oralRms)) * 100;
-
-			console.log(`Calculated nasalance score: ${calculatedScore}`);
-
-			// Store the processed files and score
 			const recordingDuration = durationSeconds || timer || 0;
 
 			setNasalRecording({
@@ -574,9 +580,7 @@ const TestScreen = ({ navigation, route }) => {
 				uri: result.rightPath,
 				localPath: result.rightPath,
 			});
-
-			setNasalanceScore(calculatedScore);
-			setProcessingAudio(false);
+			await runProcessor(result.leftPath, result.rightPath);
 
 			// Move to review step
 			setCurrentStep(isImported ? 2 : 3);
@@ -707,8 +711,7 @@ const TestScreen = ({ navigation, route }) => {
 			console.log("Saving test data to local database...");
 
 			// Use the actual calculated nasalance score
-			const calculatedNasalanceScore = Math.round(nasalanceScore);
-
+			const calculatedNasalanceScore = nasalanceScore;
 			const testData = {
 				mrn: patient?.mrn,
 				created_at: testDate,
@@ -721,6 +724,12 @@ const TestScreen = ({ navigation, route }) => {
 					oral_device: selectedDevice?.name || "Internal Microphone",
 					duration: nasalRecording.duration,
 					recording_date: testDate,
+					source_nasal_file: processorResult?.nasalance_data?.source_nasal_file,
+					source_oral_file: processorResult?.nasalance_data?.source_oral_file,
+					filter_applied: processorResult?.nasalance_data?.filter_applied,
+					filter_range_hz: processorResult?.nasalance_data?.filter_range_hz,
+					waveform_data: processorResult?.waveform_data,
+					pressure_data: processorResult?.pressure_data,
 				}),
 			};
 
@@ -970,7 +979,7 @@ const TestScreen = ({ navigation, route }) => {
 				{/* Nasalance Score */}
 				<View style={styles.scoreContainer}>
 					<Text style={styles.scoreLabel}>Nasalance Score</Text>
-					<Text style={styles.scoreValue}>{Math.round(nasalanceScore)}%</Text>
+					<Text style={styles.scoreValue}>{(nasalanceScore ?? 0).toFixed(1)}%</Text>
 				</View>
 
 				{/* Device info */}
