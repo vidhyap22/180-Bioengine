@@ -480,7 +480,6 @@ const TestScreen = ({ navigation, route }) => {
 				}
 				console.log("-----------------------------------------");
 
-				const recordingDuration = durationSeconds || timer || 0; 
 
 				// Store the newly generated WAV files in the recording states
 				setNasalRecording({
