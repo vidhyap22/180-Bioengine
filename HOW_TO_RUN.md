@@ -120,12 +120,9 @@ This forwards the Metro Bundler over the USB cable, allowing the app to stay con
 
 ---
 
-## ⚙️ Environment Configuration
+## ⚙️ Database & Environment Configuration
 
-If the app requires connection to Supabase or other services, create a `.env` file in the root directory:
-```env
-REACT_APP_SB_API_KEY="your_supabase_api_key"
-```
+The application runs entirely local-first using a local **SQLite** database on the device. All tables and schemas are initialized automatically when you first launch the app. No external database setup, API keys, or `.env` configuration files are required.
 
 ---
 
